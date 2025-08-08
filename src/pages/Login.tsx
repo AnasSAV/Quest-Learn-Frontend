@@ -33,30 +33,73 @@ const Login = () => {
     setError('');
 
     try {
-      // Call the actual login API
-      const response = await api.login(formData);
+      // Check if this is a demo login (when backend is not available)
+      const isDemoLogin = formData.email.includes('@demo.com');
       
-      // Store the token
-      localStorage.setItem('token', response.token);
-      
-      // Decode the token to get user info
-      const decodedToken = api.decodeToken(response.token);
-      
-      // Store user information
-      localStorage.setItem('userId', decodedToken.sub);
-      localStorage.setItem('userRole', decodedToken.role);
-      localStorage.setItem('userEmail', formData.email);
-      localStorage.setItem('isAuthenticated', 'true');
-      
-      // Map backend role to frontend userType for compatibility
-      const userType = decodedToken.role === 'TEACHER' ? 'teacher' : 'student';
-      localStorage.setItem('userType', userType);
+      if (isDemoLogin) {
+        // Demo login simulation
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Validate demo credentials
+        const validCredentials = 
+          (formData.email === 'teacher@demo.com' && formData.password === 'password123') ||
+          (formData.email === 'student@demo.com' && formData.password === 'password123');
 
-      // Navigate to appropriate dashboard based on role
-      if (decodedToken.role === 'TEACHER') {
-        navigate('/teacher-dashboard');
+        if (!validCredentials) {
+          throw new Error('Invalid demo credentials');
+        }
+
+        // Mock demo data
+        const role = formData.email === 'teacher@demo.com' ? 'TEACHER' : 'STUDENT';
+        const userType = role === 'TEACHER' ? 'teacher' : 'student';
+        
+        localStorage.setItem('userId', 'demo-user-id');
+        localStorage.setItem('userRole', role);
+        localStorage.setItem('userType', userType);
+        localStorage.setItem('userEmail', formData.email);
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('token', 'demo-token');
+
+        // Navigate to appropriate dashboard
+        if (role === 'TEACHER') {
+          navigate('/teacher-dashboard');
+        } else {
+          navigate('/student-dashboard');
+        }
       } else {
-        navigate('/student-dashboard');
+        // Use actual API for authentication
+        const response = await api.login({
+          email: formData.email,
+          password: formData.password
+        });
+        
+        // Check if we received a valid token
+        if (!response.access_token || typeof response.access_token !== 'string') {
+          throw new Error('Invalid token received from server');
+        }
+        
+        // Store the JWT token
+        localStorage.setItem('token', response.access_token);
+        
+        // Decode the token to get user info
+        const decodedToken = api.decodeToken(response.access_token);
+        
+        // Store user information
+        localStorage.setItem('userId', decodedToken.sub);
+        localStorage.setItem('userRole', decodedToken.role);
+        localStorage.setItem('userEmail', formData.email);
+        localStorage.setItem('isAuthenticated', 'true');
+        
+        // Map backend role to frontend userType for compatibility
+        const userType = decodedToken.role === 'TEACHER' ? 'teacher' : 'student';
+        localStorage.setItem('userType', userType);
+
+        // Navigate to appropriate dashboard based on role
+        if (decodedToken.role === 'TEACHER') {
+          navigate('/teacher-dashboard');
+        } else {
+          navigate('/student-dashboard');
+        }
       }
     } catch (err: any) {
       console.error('Login error:', err);
@@ -70,6 +113,8 @@ const Login = () => {
         errorMessage = 'Server error. Please try again later.';
       } else if (err.code === 'NETWORK_ERROR') {
         errorMessage = 'Network error. Please check your connection.';
+      } else if (err.message) {
+        errorMessage = err.message;
       }
       
       setError(errorMessage);

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export interface Assignment {
   id: string;
@@ -26,19 +26,20 @@ export interface StudentPerformance {
 }
 
 export interface AuthResponse {
-  token: string;
+  access_token: string;
+  token_type: string;
+}
+
+export interface JWTPayload {
+  sub: string; // User ID
+  role: 'TEACHER' | 'STUDENT';
+  iat: number; // Issued at
+  exp: number; // Expiration time
 }
 
 export interface LoginRequest {
   email: string;
   password: string;
-}
-
-export interface TokenPayload {
-  sub: string; // user ID
-  role: 'TEACHER' | 'STUDENT';
-  iat: number;
-  exp: number;
 }
 
 // Create axios instance with default config
@@ -52,7 +53,7 @@ const apiClient = axios.create({
 // Add request interceptor to include auth token
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  if (token) {
+  if (token && token !== 'demo-token') {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -80,7 +81,7 @@ export const api = {
 
   logout: async (): Promise<void> => {
     const token = localStorage.getItem('token');
-    if (token) {
+    if (token && token !== 'demo-token') {
       try {
         await apiClient.post('/auth/logout');
       } catch (error) {
@@ -90,37 +91,67 @@ export const api = {
     localStorage.clear();
   },
 
-  // Token utility functions
-  decodeToken: (token: string): TokenPayload => {
-    return jwtDecode<TokenPayload>(token);
+  // Utility function to decode JWT token
+  decodeToken: (token: string): JWTPayload => {
+    if (!token || typeof token !== 'string') {
+      throw new Error('Invalid token: token must be a string');
+    }
+    
+    try {
+      return jwtDecode<JWTPayload>(token);
+    } catch (error) {
+      throw new Error('Failed to decode token: ' + (error as Error).message);
+    }
   },
 
+  // Check if token is valid (not expired and properly formatted)
   isTokenValid: (token: string): boolean => {
+    if (!token || typeof token !== 'string') {
+      return false;
+    }
+    
+    // Special case for demo token
+    if (token === 'demo-token') {
+      return true;
+    }
+    
     try {
-      const decoded = jwtDecode<TokenPayload>(token);
+      const decodedToken = api.decodeToken(token);
       const currentTime = Date.now() / 1000;
-      return decoded.exp > currentTime;
-    } catch {
+      return decodedToken.exp > currentTime;
+    } catch (error) {
       return false;
     }
   },
 
-  getCurrentUser: (): { id: string; role: string; email: string } | null => {
+  // Get current user info from stored token
+  getCurrentUser: (): JWTPayload | null => {
     const token = localStorage.getItem('token');
-    const email = localStorage.getItem('userEmail');
     
-    if (!token || !email) return null;
+    if (!token) {
+      return null;
+    }
     
-    try {
-      const decoded = api.decodeToken(token);
-      if (!api.isTokenValid(token)) return null;
+    // Special case for demo token
+    if (token === 'demo-token') {
+      const role = localStorage.getItem('userRole') as 'TEACHER' | 'STUDENT';
+      const userId = localStorage.getItem('userId');
+      
+      if (!role || !userId) {
+        return null;
+      }
       
       return {
-        id: decoded.sub,
-        role: decoded.role,
-        email: email
+        sub: userId,
+        role: role,
+        iat: Date.now() / 1000,
+        exp: Date.now() / 1000 + (24 * 60 * 60) // 24 hours from now
       };
-    } catch {
+    }
+    
+    try {
+      return api.decodeToken(token);
+    } catch (error) {
       return null;
     }
   },

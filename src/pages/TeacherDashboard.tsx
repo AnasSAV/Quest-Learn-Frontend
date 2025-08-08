@@ -30,8 +30,6 @@ const TeacherDashboard = () => {
       navigate('/login');
       return;
     }
-
-    setUserEmail(currentUser.email);
   }, [navigate]);
 
   const handleLogout = async () => {
