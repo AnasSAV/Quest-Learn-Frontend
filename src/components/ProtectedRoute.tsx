@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { ReactNode } from 'react';
+import { api } from '@/services/api';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -7,21 +8,38 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredUserType }: ProtectedRouteProps) => {
+  const token = localStorage.getItem('token');
   const isAuthenticated = localStorage.getItem('isAuthenticated');
-  const userType = localStorage.getItem('userType');
 
-  if (!isAuthenticated) {
+  // Check if user is authenticated and token is valid
+  if (!isAuthenticated || !token || !api.isTokenValid(token)) {
+    localStorage.clear(); // Clear invalid session
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredUserType && userType !== requiredUserType) {
-    // Redirect to appropriate dashboard based on user type
-    if (userType === 'teacher') {
-      return <Navigate to="/teacher-dashboard" replace />;
-    } else if (userType === 'student') {
-      return <Navigate to="/student-dashboard" replace />;
-    } else {
-      return <Navigate to="/login" replace />;
+  // Get current user info from token
+  const currentUser = api.getCurrentUser();
+  
+  if (!currentUser) {
+    localStorage.clear();
+    return <Navigate to="/login" replace />;
+  }
+
+  // Check if user type matches required type
+  if (requiredUserType) {
+    const userRole = currentUser.role;
+    const expectedRole = requiredUserType === 'teacher' ? 'TEACHER' : 'STUDENT';
+    
+    if (userRole !== expectedRole) {
+      // Redirect to appropriate dashboard based on user's actual role
+      if (userRole === 'TEACHER') {
+        return <Navigate to="/teacher-dashboard" replace />;
+      } else if (userRole === 'STUDENT') {
+        return <Navigate to="/student-dashboard" replace />;
+      } else {
+        localStorage.clear();
+        return <Navigate to="/login" replace />;
+      }
     }
   }
 

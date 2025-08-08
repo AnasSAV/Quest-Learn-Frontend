@@ -16,6 +16,7 @@ import {
   Download
 } from 'lucide-react';
 import TeacherUploadForm from '@/components/TeacherUploadForm';
+import { api } from '@/services/api';
 
 const TeacherDashboard = () => {
   const [userEmail, setUserEmail] = useState('');
@@ -23,21 +24,24 @@ const TeacherDashboard = () => {
 
   useEffect(() => {
     // Check authentication
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    const userType = localStorage.getItem('userType');
-    const email = localStorage.getItem('userEmail');
+    const currentUser = api.getCurrentUser();
 
-    if (!isAuthenticated || userType !== 'teacher') {
+    if (!currentUser || currentUser.role !== 'TEACHER') {
       navigate('/login');
       return;
     }
 
-    setUserEmail(email || '');
+    setUserEmail(currentUser.email);
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      navigate('/login');
+    }
   };
 
   // Mock data - replace with actual API calls

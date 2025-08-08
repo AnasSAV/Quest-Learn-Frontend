@@ -8,13 +8,15 @@ import TeacherDashboard from "./pages/TeacherDashboard";
 import StudentDashboard from "./pages/StudentDashboard";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { api } from "./services/api";
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Check if user is authenticated and redirect accordingly
+  // Check if user is authenticated with valid token
+  const token = localStorage.getItem('token');
   const isAuthenticated = localStorage.getItem('isAuthenticated');
-  const userType = localStorage.getItem('userType');
+  const currentUser = token && isAuthenticated && api.isTokenValid(token) ? api.getCurrentUser() : null;
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -27,8 +29,8 @@ const App = () => {
             <Route 
               path="/" 
               element={
-                isAuthenticated ? (
-                  userType === 'teacher' ? (
+                currentUser ? (
+                  currentUser.role === 'TEACHER' ? (
                     <Navigate to="/teacher-dashboard" replace />
                   ) : (
                     <Navigate to="/student-dashboard" replace />
@@ -43,8 +45,8 @@ const App = () => {
             <Route 
               path="/login" 
               element={
-                isAuthenticated ? (
-                  userType === 'teacher' ? (
+                currentUser ? (
+                  currentUser.role === 'TEACHER' ? (
                     <Navigate to="/teacher-dashboard" replace />
                   ) : (
                     <Navigate to="/student-dashboard" replace />

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -26,19 +27,49 @@ export interface StudentPerformance {
 
 export interface AuthResponse {
   token: string;
-  user: {
-    id: string;
-    email: string;
-    userType: 'teacher' | 'student';
-    name: string;
-  };
 }
 
 export interface LoginRequest {
   email: string;
   password: string;
-  userType: 'teacher' | 'student';
 }
+
+export interface TokenPayload {
+  sub: string; // user ID
+  role: 'TEACHER' | 'STUDENT';
+  iat: number;
+  exp: number;
+}
+
+// Create axios instance with default config
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add request interceptor to include auth token
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Add response interceptor to handle auth errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      localStorage.clear();
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const api = {
   // Authentication APIs
@@ -48,7 +79,50 @@ export const api = {
   },
 
   logout: async (): Promise<void> => {
-    await axios.post(`${API_BASE_URL}/auth/logout`);
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        await apiClient.post('/auth/logout');
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    }
+    localStorage.clear();
+  },
+
+  // Token utility functions
+  decodeToken: (token: string): TokenPayload => {
+    return jwtDecode<TokenPayload>(token);
+  },
+
+  isTokenValid: (token: string): boolean => {
+    try {
+      const decoded = jwtDecode<TokenPayload>(token);
+      const currentTime = Date.now() / 1000;
+      return decoded.exp > currentTime;
+    } catch {
+      return false;
+    }
+  },
+
+  getCurrentUser: (): { id: string; role: string; email: string } | null => {
+    const token = localStorage.getItem('token');
+    const email = localStorage.getItem('userEmail');
+    
+    if (!token || !email) return null;
+    
+    try {
+      const decoded = api.decodeToken(token);
+      if (!api.isTokenValid(token)) return null;
+      
+      return {
+        id: decoded.sub,
+        role: decoded.role,
+        email: email
+      };
+    } catch {
+      return null;
+    }
   },
 
   // Teacher APIs
@@ -57,7 +131,7 @@ export const api = {
     formData.append('questionImage', questionImage);
     formData.append('correctAnswer', correctAnswer);
     
-    const response = await axios.post(`${API_BASE_URL}/upload`, formData, {
+    const response = await apiClient.post('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -66,18 +140,18 @@ export const api = {
   },
 
   getAssignments: async (): Promise<Assignment[]> => {
-    const response = await axios.get(`${API_BASE_URL}/assignments`);
+    const response = await apiClient.get('/assignments');
     return response.data;
   },
 
   getStudentPerformance: async (): Promise<StudentPerformance[]> => {
-    const response = await axios.get(`${API_BASE_URL}/performance`);
+    const response = await apiClient.get('/performance');
     return response.data;
   },
 
   // Student APIs
   submitAnswer: async (assignmentId: string, answer: string): Promise<{ isCorrect: boolean; correctAnswer?: string }> => {
-    const response = await axios.post(`${API_BASE_URL}/submitAnswer`, {
+    const response = await apiClient.post('/submitAnswer', {
       assignmentId,
       answer,
     });

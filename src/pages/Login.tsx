@@ -6,13 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { GraduationCap, Eye, EyeOff } from 'lucide-react';
-// import { api } from '@/services/api';
+import { api } from '@/services/api';
 
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
-    userType: 'student' // 'student' or 'teacher'
+    password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,53 +27,52 @@ const Login = () => {
     setError(''); // Clear error when user types
   };
 
-  const handleUserTypeChange = (type: 'student' | 'teacher') => {
-    setFormData(prev => ({
-      ...prev,
-      userType: type
-    }));
-    setError('');
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
     try {
-      // TODO: Uncomment when backend is ready
-      // const response = await api.login(formData);
-      // localStorage.setItem('token', response.token);
-      // localStorage.setItem('userType', response.user.userType);
-      // localStorage.setItem('isAuthenticated', 'true');
-      // localStorage.setItem('userEmail', response.user.email);
-
-      // For demo purposes, simulate login
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Validate demo credentials
-      const validCredentials = 
-        (formData.email === 'teacher@demo.com' && formData.password === 'password123' && formData.userType === 'teacher') ||
-        (formData.email === 'student@demo.com' && formData.password === 'password123' && formData.userType === 'student') ||
-        (formData.email && formData.password && formData.password.length >= 6);
-
-      if (!validCredentials) {
-        throw new Error('Invalid credentials');
-      }
-
-      // Store user data in localStorage (replace with proper token handling)
-      localStorage.setItem('userType', formData.userType);
-      localStorage.setItem('isAuthenticated', 'true');
+      // Call the actual login API
+      const response = await api.login(formData);
+      
+      // Store the token
+      localStorage.setItem('token', response.token);
+      
+      // Decode the token to get user info
+      const decodedToken = api.decodeToken(response.token);
+      
+      // Store user information
+      localStorage.setItem('userId', decodedToken.sub);
+      localStorage.setItem('userRole', decodedToken.role);
       localStorage.setItem('userEmail', formData.email);
+      localStorage.setItem('isAuthenticated', 'true');
+      
+      // Map backend role to frontend userType for compatibility
+      const userType = decodedToken.role === 'TEACHER' ? 'teacher' : 'student';
+      localStorage.setItem('userType', userType);
 
-      // Navigate to appropriate dashboard
-      if (formData.userType === 'teacher') {
+      // Navigate to appropriate dashboard based on role
+      if (decodedToken.role === 'TEACHER') {
         navigate('/teacher-dashboard');
       } else {
         navigate('/student-dashboard');
       }
-    } catch (err) {
-      setError('Login failed. Please check your credentials and try again.');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      
+      // Handle different types of errors
+      let errorMessage = 'Login failed. Please check your credentials and try again.';
+      
+      if (err.response?.status === 401) {
+        errorMessage = 'Invalid email or password.';
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (err.code === 'NETWORK_ERROR') {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -100,29 +98,6 @@ const Login = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* User Type Selection */}
-              <div className="space-y-2">
-                <Label>I am a:</Label>
-                <div className="flex space-x-2">
-                  <Button
-                    type="button"
-                    variant={formData.userType === 'student' ? 'default' : 'outline'}
-                    onClick={() => handleUserTypeChange('student')}
-                    className="flex-1"
-                  >
-                    Student
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={formData.userType === 'teacher' ? 'default' : 'outline'}
-                    onClick={() => handleUserTypeChange('teacher')}
-                    className="flex-1"
-                  >
-                    Teacher
-                  </Button>
-                </div>
-              </div>
-
               {/* Email Input */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -183,12 +158,12 @@ const Login = () => {
               </Button>
             </form>
 
-            {/* Demo Credentials */}
+            {/* Demo Information */}
             <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm font-medium text-foreground mb-2">Demo Credentials:</p>
+              <p className="text-sm font-medium text-foreground mb-2">Authentication Note:</p>
               <div className="text-xs text-muted-foreground space-y-1">
-                <p><strong>Student:</strong> student@demo.com / password123</p>
-                <p><strong>Teacher:</strong> teacher@demo.com / password123</p>
+                <p>The system will automatically detect if you're a teacher or student based on your account.</p>
+                <p>Use your registered email and password to login.</p>
               </div>
             </div>
           </CardContent>

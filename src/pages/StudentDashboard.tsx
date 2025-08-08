@@ -17,6 +17,7 @@ import {
   Play
 } from 'lucide-react';
 import StudentAssignmentView from '@/components/StudentAssignmentView';
+import { api } from '@/services/api';
 
 const StudentDashboard = () => {
   const [userEmail, setUserEmail] = useState('');
@@ -24,21 +25,24 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     // Check authentication
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    const userType = localStorage.getItem('userType');
-    const email = localStorage.getItem('userEmail');
+    const currentUser = api.getCurrentUser();
 
-    if (!isAuthenticated || userType !== 'student') {
+    if (!currentUser || currentUser.role !== 'STUDENT') {
       navigate('/login');
       return;
     }
 
-    setUserEmail(email || '');
+    setUserEmail(currentUser.email);
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      navigate('/login');
+    }
   };
 
   // Mock data - replace with actual API calls
