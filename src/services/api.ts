@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3001/api'; // Replace with your backend URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export interface Assignment {
   id: string;
@@ -24,7 +24,33 @@ export interface StudentPerformance {
   accuracy: number;
 }
 
+export interface AuthResponse {
+  token: string;
+  user: {
+    id: string;
+    email: string;
+    userType: 'teacher' | 'student';
+    name: string;
+  };
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+  userType: 'teacher' | 'student';
+}
+
 export const api = {
+  // Authentication APIs
+  login: async (credentials: LoginRequest): Promise<AuthResponse> => {
+    const response = await axios.post(`${API_BASE_URL}/auth/login`, credentials);
+    return response.data;
+  },
+
+  logout: async (): Promise<void> => {
+    await axios.post(`${API_BASE_URL}/auth/logout`);
+  },
+
   // Teacher APIs
   uploadAssignment: async (questionImage: File, correctAnswer: string): Promise<Assignment> => {
     const formData = new FormData();
