@@ -26,7 +26,15 @@ export interface LegacyAssignment {
 }
 
 export interface Classroom {
+  id: string;
   name: string;
+  created_at?: string;
+  teacher_id?: string;
+}
+
+export interface ClassroomsResponse {
+  count: number;
+  classrooms: Classroom[];
 }
 
 export interface StudentPerformance {
@@ -57,14 +65,16 @@ export const teacherApi = {
     return response.data;
   },
 
+  // Classroom management
   createClassroom: async (name: string): Promise<Classroom> => {
-    const response = await apiClient.post('teachers/classrooms', { name });
+    const response = await apiClient.post('/teachers/classrooms', { name });
     return response.data;
   },
   
-  getClassroom: async (name: string): Promise<Classroom> => {
-    const response = await apiClient.get(`teachers/classrooms/all`);
-    return response.data;
+  getAllClassrooms: async (): Promise<Classroom[]> => {
+    const response = await apiClient.get('/teachers/classrooms/all');
+    const data: ClassroomsResponse = response.data;
+    return data.classrooms || [];
   },
   // Get all assignments (legacy)
   getAssignments: async (): Promise<LegacyAssignment[]> => {

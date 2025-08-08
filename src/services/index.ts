@@ -22,6 +22,8 @@ export const api = {
   getAssignments: teacherApi.getAssignments,
   getAllAssignments: teacherApi.getAllAssignments,
   getStudentPerformance: teacherApi.getStudentPerformance,
+  createClassroom: teacherApi.createClassroom,
+  getAllClassrooms: teacherApi.getAllClassrooms,
   
   // Student methods
   submitAnswer: studentApi.submitAnswer,

@@ -15,15 +15,19 @@ import {
   Plus,
   Eye,
   Download,
-  RefreshCw
+  RefreshCw,
+  Filter
 } from 'lucide-react';
 import TeacherUploadForm from '@/components/TeacherUploadForm';
+import ClassroomManager from '@/components/ClassroomManager';
 import { authApi } from '@/services/auth.api';
 import { teacherApi, type Assignment } from '@/services/teacher.api';
 
 const TeacherDashboard = () => {
   const [userEmail, setUserEmail] = useState('');
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [filteredAssignments, setFilteredAssignments] = useState<Assignment[]>([]);
+  const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -45,6 +49,16 @@ const TeacherDashboard = () => {
     fetchAssignments();
   }, [navigate]);
 
+  // Filter assignments when classroom selection changes
+  useEffect(() => {
+    if (selectedClassroomId === null) {
+      setFilteredAssignments(assignments);
+    } else {
+      const filtered = assignments.filter(assignment => assignment.classroom_id === selectedClassroomId);
+      setFilteredAssignments(filtered);
+    }
+  }, [assignments, selectedClassroomId]);
+
   const fetchAssignments = async () => {
     try {
       setIsLoading(true);
@@ -59,6 +73,10 @@ const TeacherDashboard = () => {
     }
   };
 
+  const handleClassroomSelect = (classroomId: string | null) => {
+    setSelectedClassroomId(classroomId);
+  };
+
   const handleLogout = async () => {
     try {
       await authApi.logout();
@@ -69,13 +87,13 @@ const TeacherDashboard = () => {
     }
   };
 
-  // Calculate stats from assignments data
+  // Calculate stats from filtered assignments data
   const stats = {
-    totalAssignments: assignments.length,
-    activeStudents: assignments.reduce((sum, assignment) => sum + assignment.unique_students_attempted, 0),
-    completedSubmissions: assignments.reduce((sum, assignment) => sum + assignment.completed_attempts, 0),
-    averageScore: assignments.length > 0 ? 
-      Math.round(assignments.reduce((sum, assignment) => sum + (assignment.average_score || 0), 0) / assignments.length) : 0
+    totalAssignments: filteredAssignments.length,
+    activeStudents: filteredAssignments.reduce((sum, assignment) => sum + assignment.unique_students_attempted, 0),
+    completedSubmissions: filteredAssignments.reduce((sum, assignment) => sum + assignment.completed_attempts, 0),
+    averageScore: filteredAssignments.length > 0 ? 
+      Math.round(filteredAssignments.reduce((sum, assignment) => sum + (assignment.average_score || 0), 0) / filteredAssignments.length) : 0
   };
 
   const formatDate = (dateString: string) => {
@@ -183,105 +201,141 @@ const TeacherDashboard = () => {
         <Tabs defaultValue="assignments" className="space-y-6">
           <TabsList>
             <TabsTrigger value="assignments">Assignments</TabsTrigger>
+            <TabsTrigger value="classrooms">Classrooms</TabsTrigger>
             <TabsTrigger value="upload">Upload New</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="students">Students</TabsTrigger>
           </TabsList>
 
           <TabsContent value="assignments" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-foreground">All Assignments</h2>
-              <div className="flex space-x-2">
-                <Button 
-                  variant="outline" 
-                  onClick={fetchAssignments}
-                  disabled={isLoading}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Assignment
-                </Button>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Classroom Filter Sidebar */}
+              <div className="lg:col-span-1">
+                <ClassroomManager 
+                  onClassroomSelect={handleClassroomSelect}
+                  selectedClassroomId={selectedClassroomId}
+                />
+              </div>
+
+              {/* Assignments Content */}
+              <div className="lg:col-span-3 space-y-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground">
+                      {selectedClassroomId ? 'Classroom Assignments' : 'All Assignments'}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedClassroomId 
+                        ? `Showing ${filteredAssignments.length} assignments`
+                        : `Showing all ${assignments.length} assignments`
+                      }
+                    </p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={fetchAssignments}
+                      disabled={isLoading}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Assignment
+                    </Button>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="text-center py-8">
+                    <p className="text-destructive">{error}</p>
+                    <Button onClick={fetchAssignments} variant="outline" className="mt-4">
+                      Retry
+                    </Button>
+                  </div>
+                )}
+
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Loading assignments...</p>
+                  </div>
+                ) : filteredAssignments.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      {selectedClassroomId ? 'No Assignments in This Classroom' : 'No Assignments Yet'}
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      {selectedClassroomId 
+                        ? 'This classroom doesn\'t have any assignments yet.'
+                        : 'Create your first assignment to get started.'
+                      }
+                    </p>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Assignment
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {filteredAssignments.map((assignment) => {
+                      const status = getStatusBadge(assignment);
+                      return (
+                        <Card key={assignment.id}>
+                          <CardContent className="p-6">
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="space-y-2 flex-1">
+                                <div className="flex items-center gap-3">
+                                  <h3 className="text-lg font-semibold text-foreground">{assignment.title}</h3>
+                                  <Badge variant={status.variant}>
+                                    {status.text}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground">{assignment.description}</p>
+                                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                  <span>📚 {assignment.classroom_name}</span>
+                                  <span>👥 {assignment.unique_students_attempted} students attempted</span>
+                                  <span>📝 {assignment.completed_attempts} completed</span>
+                                  <span>❓ {assignment.total_questions} questions</span>
+                                </div>
+                                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                  <span>Opens: {formatDate(assignment.opens_at)}</span>
+                                  <span>Due: {formatDate(assignment.due_at)}</span>
+                                  {assignment.average_score !== null && (
+                                    <span>Avg Score: {Math.round(assignment.average_score)}%</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2 ml-4">
+                                <Badge variant="secondary">
+                                  {assignment.completed_attempts}/{assignment.total_attempts} submissions
+                                </Badge>
+                                <Button variant="outline" size="sm">
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View
+                                </Button>
+                                <Button variant="outline" size="sm">
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Export
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
+          </TabsContent>
 
-            {error && (
-              <div className="text-center py-8">
-                <p className="text-destructive">{error}</p>
-                <Button onClick={fetchAssignments} variant="outline" className="mt-4">
-                  Retry
-                </Button>
-              </div>
-            )}
-
-            {isLoading ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Loading assignments...</p>
-              </div>
-            ) : assignments.length === 0 ? (
-              <div className="text-center py-12">
-                <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">No Assignments Yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Create your first assignment to get started.
-                </p>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Assignment
-                </Button>
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {assignments.map((assignment) => {
-                  const status = getStatusBadge(assignment);
-                  return (
-                    <Card key={assignment.id}>
-                      <CardContent className="p-6">
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="space-y-2 flex-1">
-                            <div className="flex items-center gap-3">
-                              <h3 className="text-lg font-semibold text-foreground">{assignment.title}</h3>
-                              <Badge variant={status.variant}>
-                                {status.text}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">{assignment.description}</p>
-                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                              <span>📚 {assignment.classroom_name}</span>
-                              <span>👥 {assignment.unique_students_attempted} students attempted</span>
-                              <span>📝 {assignment.completed_attempts} completed</span>
-                              <span>❓ {assignment.total_questions} questions</span>
-                            </div>
-                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                              <span>Opens: {formatDate(assignment.opens_at)}</span>
-                              <span>Due: {formatDate(assignment.due_at)}</span>
-                              {assignment.average_score !== null && (
-                                <span>Avg Score: {Math.round(assignment.average_score)}%</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2 ml-4">
-                            <Badge variant="secondary">
-                              {assignment.completed_attempts}/{assignment.total_attempts} submissions
-                            </Badge>
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4 mr-2" />
-                              View
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Download className="h-4 w-4 mr-2" />
-                              Export
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
+          <TabsContent value="classrooms">
+            <ClassroomManager 
+              onClassroomSelect={handleClassroomSelect}
+              selectedClassroomId={selectedClassroomId}
+            />
           </TabsContent>
 
           <TabsContent value="upload">
