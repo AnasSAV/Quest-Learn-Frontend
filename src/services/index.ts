@@ -20,6 +20,7 @@ export const api = {
   // Teacher methods
   uploadAssignment: teacherApi.uploadAssignment,
   getAssignments: teacherApi.getAssignments,
+  getAllAssignments: teacherApi.getAllAssignments,
   getStudentPerformance: teacherApi.getStudentPerformance,
   
   // Student methods

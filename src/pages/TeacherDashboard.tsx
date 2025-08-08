@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   UploadCloud, 
   Users, 
@@ -13,13 +14,18 @@ import {
   LogOut,
   Plus,
   Eye,
-  Download
+  Download,
+  RefreshCw
 } from 'lucide-react';
 import TeacherUploadForm from '@/components/TeacherUploadForm';
 import { authApi } from '@/services/auth.api';
+import { teacherApi, type Assignment } from '@/services/teacher.api';
 
 const TeacherDashboard = () => {
   const [userEmail, setUserEmail] = useState('');
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,7 +40,24 @@ const TeacherDashboard = () => {
     // Get the email from localStorage (set during login)
     const email = localStorage.getItem('userEmail');
     setUserEmail(email || '');
+
+    // Fetch assignments
+    fetchAssignments();
   }, [navigate]);
+
+  const fetchAssignments = async () => {
+    try {
+      setIsLoading(true);
+      const assignmentsData = await teacherApi.getAllAssignments();
+      setAssignments(assignmentsData);
+      setError('');
+    } catch (err) {
+      console.error('Error fetching assignments:', err);
+      setError('Failed to load assignments');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -46,19 +69,36 @@ const TeacherDashboard = () => {
     }
   };
 
-  // Mock data - replace with actual API calls
+  // Calculate stats from assignments data
   const stats = {
-    totalAssignments: 12,
-    activeStudents: 28,
-    completedSubmissions: 156,
-    averageScore: 78
+    totalAssignments: assignments.length,
+    activeStudents: assignments.reduce((sum, assignment) => sum + assignment.unique_students_attempted, 0),
+    completedSubmissions: assignments.reduce((sum, assignment) => sum + assignment.completed_attempts, 0),
+    averageScore: assignments.length > 0 ? 
+      Math.round(assignments.reduce((sum, assignment) => sum + (assignment.average_score || 0), 0) / assignments.length) : 0
   };
 
-  const recentAssignments = [
-    { id: 1, title: 'Algebra Basics', students: 15, submissions: 12, dueDate: '2025-08-10' },
-    { id: 2, title: 'Geometry Problems', students: 20, submissions: 18, dueDate: '2025-08-12' },
-    { id: 3, title: 'Calculus Quiz', students: 10, submissions: 8, dueDate: '2025-08-15' }
-  ];
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const getStatusBadge = (assignment: Assignment) => {
+    const now = new Date();
+    const opensAt = new Date(assignment.opens_at);
+    const dueAt = new Date(assignment.due_at);
+    
+    if (now < opensAt) {
+      return { text: 'Upcoming', variant: 'secondary' as const };
+    } else if (now > dueAt) {
+      return { text: 'Closed', variant: 'destructive' as const };
+    } else {
+      return { text: 'Active', variant: 'default' as const };
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -150,44 +190,98 @@ const TeacherDashboard = () => {
 
           <TabsContent value="assignments" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-foreground">Recent Assignments</h2>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                New Assignment
-              </Button>
+              <h2 className="text-2xl font-bold text-foreground">All Assignments</h2>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={fetchAssignments}
+                  disabled={isLoading}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Assignment
+                </Button>
+              </div>
             </div>
 
-            <div className="grid gap-4">
-              {recentAssignments.map((assignment) => (
-                <Card key={assignment.id}>
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-semibold text-foreground">{assignment.title}</h3>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <span>{assignment.students} students</span>
-                          <span>{assignment.submissions} submissions</span>
-                          <span>Due: {assignment.dueDate}</span>
+            {error && (
+              <div className="text-center py-8">
+                <p className="text-destructive">{error}</p>
+                <Button onClick={fetchAssignments} variant="outline" className="mt-4">
+                  Retry
+                </Button>
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading assignments...</p>
+              </div>
+            ) : assignments.length === 0 ? (
+              <div className="text-center py-12">
+                <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">No Assignments Yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Create your first assignment to get started.
+                </p>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Assignment
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {assignments.map((assignment) => {
+                  const status = getStatusBadge(assignment);
+                  return (
+                    <Card key={assignment.id}>
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="space-y-2 flex-1">
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-lg font-semibold text-foreground">{assignment.title}</h3>
+                              <Badge variant={status.variant}>
+                                {status.text}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{assignment.description}</p>
+                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                              <span>📚 {assignment.classroom_name}</span>
+                              <span>👥 {assignment.unique_students_attempted} students attempted</span>
+                              <span>📝 {assignment.completed_attempts} completed</span>
+                              <span>❓ {assignment.total_questions} questions</span>
+                            </div>
+                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                              <span>Opens: {formatDate(assignment.opens_at)}</span>
+                              <span>Due: {formatDate(assignment.due_at)}</span>
+                              {assignment.average_score !== null && (
+                                <span>Avg Score: {Math.round(assignment.average_score)}%</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2 ml-4">
+                            <Badge variant="secondary">
+                              {assignment.completed_attempts}/{assignment.total_attempts} submissions
+                            </Badge>
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4 mr-2" />
+                              View
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Download className="h-4 w-4 mr-2" />
+                              Export
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="secondary">
-                          {assignment.submissions}/{assignment.students} completed
-                        </Badge>
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Download className="h-4 w-4 mr-2" />
-                          Export
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="upload">

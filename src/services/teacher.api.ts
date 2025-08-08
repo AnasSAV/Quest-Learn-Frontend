@@ -2,9 +2,31 @@ import { apiClient } from './api.client';
 
 export interface Assignment {
   id: string;
+  classroom_id: string;
+  title: string;
+  description: string;
+  opens_at: string;
+  due_at: string;
+  shuffle_questions: boolean;
+  created_at: string;
+  classroom_name: string;
+  total_questions: number;
+  total_attempts: number;
+  unique_students_attempted: number;
+  completed_attempts: number;
+  average_score: number | null;
+  is_active: boolean;
+}
+
+export interface LegacyAssignment {
+  id: string;
   questionImage: string;
   correctAnswer: string;
   createdAt: string;
+}
+
+export interface Classroom {
+  name: string;
 }
 
 export interface StudentPerformance {
@@ -15,13 +37,13 @@ export interface StudentPerformance {
 }
 
 export const teacherApi = {
-  // Upload assignment
-  uploadAssignment: async (questionImage: File, correctAnswer: string): Promise<Assignment> => {
+  // Upload assignment (legacy)
+  uploadAssignment: async (questionImage: File, correctAnswer: string): Promise<LegacyAssignment> => {
     const formData = new FormData();
     formData.append('questionImage', questionImage);
     formData.append('correctAnswer', correctAnswer);
     
-    const response = await apiClient.post('/upload', formData, {
+    const response = await apiClient.post('teachers/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -29,8 +51,23 @@ export const teacherApi = {
     return response.data;
   },
 
-  // Get all assignments
-  getAssignments: async (): Promise<Assignment[]> => {
+  // Get all assignments for teacher
+  getAllAssignments: async (): Promise<Assignment[]> => {
+    const response = await apiClient.get('/assignments/all');
+    return response.data;
+  },
+
+  createClassroom: async (name: string): Promise<Classroom> => {
+    const response = await apiClient.post('teachers/classrooms', { name });
+    return response.data;
+  },
+  
+  getClassroom: async (name: string): Promise<Classroom> => {
+    const response = await apiClient.get(`teachers/classrooms/all`);
+    return response.data;
+  },
+  // Get all assignments (legacy)
+  getAssignments: async (): Promise<LegacyAssignment[]> => {
     const response = await apiClient.get('/assignments');
     return response.data;
   },
