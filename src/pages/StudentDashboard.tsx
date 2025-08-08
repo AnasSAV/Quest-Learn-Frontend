@@ -17,7 +17,7 @@ import {
   Play
 } from 'lucide-react';
 import StudentAssignmentView from '@/components/StudentAssignmentView';
-import { api } from '@/services/api';
+import { authApi } from '@/services/auth.api';
 
 const StudentDashboard = () => {
   const [userEmail, setUserEmail] = useState('');
@@ -25,19 +25,21 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     // Check authentication
-    const currentUser = api.getCurrentUser();
+    const currentUser = authApi.getCurrentUser();
 
     if (!currentUser || currentUser.role !== 'STUDENT') {
       navigate('/login');
       return;
     }
 
-    setUserEmail(currentUser.email);
+    // Get the email from localStorage (set during login)
+    const email = localStorage.getItem('userEmail');
+    setUserEmail(email || '');
   }, [navigate]);
 
   const handleLogout = async () => {
     try {
-      await api.logout();
+      await authApi.logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

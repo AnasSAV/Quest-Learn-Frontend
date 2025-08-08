@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { GraduationCap, Eye, EyeOff } from 'lucide-react';
-import { api } from '@/services/api';
+import { authApi } from '@/services/auth.api';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -68,7 +68,7 @@ const Login = () => {
         }
       } else {
         // Use actual API for authentication
-        const response = await api.login({
+        const response = await authApi.login({
           email: formData.email,
           password: formData.password
         });
@@ -82,7 +82,7 @@ const Login = () => {
         localStorage.setItem('token', response.access_token);
         
         // Decode the token to get user info
-        const decodedToken = api.decodeToken(response.access_token);
+        const decodedToken = authApi.decodeToken(response.access_token);
         
         // Store user information
         localStorage.setItem('userId', decodedToken.sub);

@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { ReactNode } from 'react';
-import { api } from '@/services/api';
+import { authApi } from '@/services/auth.api';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -12,13 +12,13 @@ const ProtectedRoute = ({ children, requiredUserType }: ProtectedRouteProps) => 
   const isAuthenticated = localStorage.getItem('isAuthenticated');
 
   // Check if user is authenticated and token is valid
-  if (!isAuthenticated || !token || !api.isTokenValid(token)) {
+  if (!isAuthenticated || !token || !authApi.isTokenValid(token)) {
     localStorage.clear(); // Clear invalid session
     return <Navigate to="/login" replace />;
   }
 
   // Get current user info from token
-  const currentUser = api.getCurrentUser();
+  const currentUser = authApi.getCurrentUser();
   
   if (!currentUser) {
     localStorage.clear();
