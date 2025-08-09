@@ -115,3 +115,29 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Custom wider container utilities */
+  .container-wide {
+    @apply max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .container-extra-wide {
+    @apply max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Custom grid utilities for wider layouts */
+  .grid-wide {
+    @apply grid-cols-1 md:grid-cols-4 lg:grid-cols-6;
+  }
+
+  /* Enhanced spacing for wider screens */
+  .spacing-wide {
+    @apply px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16;
+  }
+
+  /* Improved content width management */
+  .content-wide {
+    @apply max-w-none xl:max-w-[1500px] 2xl:max-w-[1800px];
+  }
+}
