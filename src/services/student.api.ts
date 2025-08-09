@@ -1,56 +1,54 @@
 import { apiClient } from './api.client';
 
-export interface StudentSubmission {
-  id: string;
-  assignmentId: string;
-  studentAnswer: string;
-  isCorrect: boolean;
-  submittedAt: string;
-}
-
 export interface StudentAssignment {
   id: string;
+  classroom_id: string;
   title: string;
-  dueDate: string;
-  status: 'completed' | 'in-progress' | 'pending';
-  score: number | null;
-  totalQuestions: number;
-  completedQuestions: number;
+  description: string;
+  opens_at: string;
+  due_at: string;
+  shuffle_questions: boolean;
+  created_at: string;
+  classroom_name: string;
+  total_questions: number;
+  total_attempts: number;
+  unique_students_attempted: number;
+  completed_attempts: number;
+  average_score: number;
+  is_active: boolean;
+  student_status: 'NOT_STARTED' | 'IN_PROGRESS' | 'SUBMITTED';
+  student_score?: number;
+  student_submitted_at?: string;
+  student_started_at?: string;
+  is_submitted_by_student: boolean;
+}
+
+export interface StudentClassroom {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
 }
 
 export const studentApi = {
-  // Submit answer for an assignment
-  submitAnswer: async (assignmentId: string, answer: string): Promise<{ 
-    isCorrect: boolean; 
-    correctAnswer?: string 
-  }> => {
-    const response = await apiClient.post('/submitAnswer', {
-      assignmentId,
-      answer,
-    });
+  getUserByEmail: async (email: string): Promise<UserProfile> => {
+    const response = await apiClient.get<UserProfile>(`/users/by-email?email=${email}`);
     return response.data;
   },
 
-  // Get student's assignments
-  getMyAssignments: async (): Promise<StudentAssignment[]> => {
-    const response = await apiClient.get('/student/assignments');
+  getStudentClassrooms: async (studentId: string): Promise<StudentClassroom[]> => {
+    const response = await apiClient.get<StudentClassroom[]>(`/students/${studentId}/classrooms`);
     return response.data;
   },
 
-  // Get student dashboard stats
-  getDashboardStats: async (): Promise<{
-    totalAssignments: number;
-    completedAssignments: number;
-    averageScore: number;
-    currentStreak: number;
-  }> => {
-    const response = await apiClient.get('/student/stats');
+  getClassroomAssignments: async (classroomId: string): Promise<StudentAssignment[]> => {
+    const response = await apiClient.get<StudentAssignment[]>(`/assignments/classroom/${classroomId}`);
     return response.data;
-  },
-
-  // Get student progress
-  getProgress: async (): Promise<any> => {
-    const response = await apiClient.get('/student/progress');
-    return response.data;
-  },
+  }
 };

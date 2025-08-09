@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   BookOpen, 
   CheckCircle, 
@@ -14,13 +15,25 @@ import {
   Trophy,
   Target,
   Calendar,
-  Play
+  Play,
+  RefreshCw
 } from 'lucide-react';
 import StudentAssignmentView from '@/components/StudentAssignmentView';
 import { authApi } from '@/services/auth.api';
+import { studentApi, type StudentAssignment, type UserProfile } from '@/services/student.api';
 
 const StudentDashboard = () => {
   const [userEmail, setUserEmail] = useState('');
+  const [studentProfile, setStudentProfile] = useState<UserProfile | null>(null);
+  const [assignments, setAssignments] = useState<StudentAssignment[]>([]);
+  const [stats, setStats] = useState({
+    totalAssignments: 0,
+    completedAssignments: 0,
+    averageScore: 0,
+    currentStreak: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,7 +48,76 @@ const StudentDashboard = () => {
     // Get the email from localStorage (set during login)
     const email = localStorage.getItem('userEmail');
     setUserEmail(email || '');
+
+    // Fetch student data
+    fetchStudentData();
   }, [navigate]);
+
+  const fetchStudentData = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+
+      // Get email from localStorage
+      const email = localStorage.getItem('userEmail');
+      if (!email) {
+        navigate('/login');
+        return;
+      }
+
+      // Step 1: Get user profile by email to get student_id
+      const userProfile = await studentApi.getUserByEmail(email);
+      setStudentProfile({
+        id: userProfile.id,
+        email: userProfile.email,
+        full_name: userProfile.full_name,
+        role: userProfile.role
+      });
+
+      // Step 2: Get student's classrooms
+      const classrooms = await studentApi.getStudentClassrooms(userProfile.id);
+      
+      // Step 3: Get assignments for each classroom and combine them
+      let allAssignments: StudentAssignment[] = [];
+      for (const classroom of classrooms) {
+        const classroomAssignments = await studentApi.getClassroomAssignments(classroom.id);
+        allAssignments = [...allAssignments, ...classroomAssignments];
+      }
+
+      // Filter to only show active assignments
+      const activeAssignments = allAssignments.filter(assignment => assignment.is_active);
+      setAssignments(activeAssignments);
+
+      // Calculate stats from the assignments
+      const totalAssignments = activeAssignments.length;
+      const completedAssignments = activeAssignments.filter(a => a.is_submitted_by_student).length;
+      const averageScore = activeAssignments
+        .filter(a => a.student_score !== undefined)
+        .reduce((acc, a) => acc + (a.student_score || 0), 0) / 
+        Math.max(1, activeAssignments.filter(a => a.student_score !== undefined).length);
+
+      setStats({
+        totalAssignments,
+        completedAssignments,
+        averageScore: Math.round(averageScore * 100) / 100,
+        currentStreak: 0 // Can be calculated based on submission dates if needed
+      });
+
+    } catch (err: any) {
+      console.error('Error fetching student data:', err);
+      setError('Failed to load student data');
+      
+      setAssignments([]);
+      setStats({
+        totalAssignments: 0,
+        completedAssignments: 0,
+        averageScore: 0,
+        currentStreak: 0
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -47,69 +129,37 @@ const StudentDashboard = () => {
     }
   };
 
-  // Mock data - replace with actual API calls
-  const stats = {
-    totalAssignments: 8,
-    completedAssignments: 5,
-    averageScore: 85,
-    currentStreak: 3
-  };
-
-  const assignments = [
-    { 
-      id: 1, 
-      title: 'Algebra Basics', 
-      dueDate: '2025-08-10', 
-      status: 'completed',
-      score: 92,
-      totalQuestions: 10,
-      completedQuestions: 10
-    },
-    { 
-      id: 2, 
-      title: 'Geometry Problems', 
-      dueDate: '2025-08-12', 
-      status: 'in-progress',
-      score: null,
-      totalQuestions: 15,
-      completedQuestions: 8
-    },
-    { 
-      id: 3, 
-      title: 'Calculus Quiz', 
-      dueDate: '2025-08-15', 
-      status: 'pending',
-      score: null,
-      totalQuestions: 12,
-      completedQuestions: 0
-    },
-    { 
-      id: 4, 
-      title: 'Statistics Homework', 
-      dueDate: '2025-08-18', 
-      status: 'pending',
-      score: null,
-      totalQuestions: 8,
-      completedQuestions: 0
-    }
-  ];
-
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-500';
-      case 'in-progress': return 'bg-yellow-500';
-      case 'pending': return 'bg-gray-400';
+      case 'SUBMITTED': return 'bg-green-500';
+      case 'IN_PROGRESS': return 'bg-yellow-500';
+      case 'NOT_STARTED': return 'bg-gray-400';
       default: return 'bg-gray-400';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed': return <CheckCircle className="h-4 w-4" />;
-      case 'in-progress': return <Clock className="h-4 w-4" />;
-      case 'pending': return <BookOpen className="h-4 w-4" />;
+      case 'SUBMITTED': return <CheckCircle className="h-4 w-4" />;
+      case 'IN_PROGRESS': return <Clock className="h-4 w-4" />;
+      case 'NOT_STARTED': return <BookOpen className="h-4 w-4" />;
       default: return <BookOpen className="h-4 w-4" />;
     }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'SUBMITTED': return 'Completed';
+      case 'IN_PROGRESS': return 'In Progress';
+      case 'NOT_STARTED': return 'Not Started';
+      default: return 'Not Started';
+    }
+  };
+
+  const getProgressPercentage = (assignment: StudentAssignment) => {
+    if (assignment.is_submitted_by_student) return 100;
+    if (assignment.student_status === 'IN_PROGRESS') return 50;
+    return 0;
   };
 
   return (
@@ -202,70 +252,105 @@ const StudentDashboard = () => {
           <TabsContent value="assignments" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-foreground">My Assignments</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchStudentData}
+                disabled={isLoading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
             </div>
 
-            <div className="grid gap-4">
-              {assignments.map((assignment) => (
-                <Card key={assignment.id}>
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-semibold text-foreground">{assignment.title}</h3>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>Due: {assignment.dueDate}</span>
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {isLoading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading assignments...</p>
+              </div>
+            ) : assignments.length === 0 ? (
+              <div className="text-center py-12">
+                <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">No Assignments Yet</h3>
+                <p className="text-muted-foreground">
+                  Your teacher hasn't assigned any homework yet. Check back later!
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {assignments.map((assignment) => {
+                  const completionPercentage = getProgressPercentage(assignment);
+                  
+                  return (
+                    <Card key={assignment.id}>
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="space-y-2">
+                            <h3 className="text-lg font-semibold text-foreground">{assignment.title}</h3>
+                            <p className="text-sm text-muted-foreground">{assignment.description}</p>
+                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                              <div className="flex items-center space-x-1">
+                                <Calendar className="h-4 w-4" />
+                                <span>Due: {new Date(assignment.due_at).toLocaleDateString()}</span>
+                              </div>
+                              <span>Class: {assignment.classroom_name}</span>
+                              <span>{assignment.total_questions} question{assignment.total_questions !== 1 ? 's' : ''}</span>
+                            </div>
                           </div>
-                          <span>{assignment.completedQuestions}/{assignment.totalQuestions} questions</span>
+                          <div className="flex items-center space-x-2">
+                            <Badge 
+                              variant="secondary"
+                              className={`${getStatusColor(assignment.student_status)} text-white`}
+                            >
+                              <span className="flex items-center space-x-1">
+                                {getStatusIcon(assignment.student_status)}
+                                <span>{getStatusText(assignment.student_status)}</span>
+                              </span>
+                            </Badge>
+                            {assignment.student_score !== undefined && (
+                              <Badge variant="outline">
+                                Score: {Math.round(assignment.student_score * 100)}%
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge 
-                          variant="secondary"
-                          className={`${getStatusColor(assignment.status)} text-white`}
-                        >
-                          <span className="flex items-center space-x-1">
-                            {getStatusIcon(assignment.status)}
-                            <span className="capitalize">{assignment.status.replace('-', ' ')}</span>
-                          </span>
-                        </Badge>
-                        {assignment.score && (
-                          <Badge variant="outline">
-                            Score: {assignment.score}%
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
 
-                    {/* Progress Bar */}
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between text-sm">
-                        <span>Progress</span>
-                        <span>{Math.round((assignment.completedQuestions / assignment.totalQuestions) * 100)}%</span>
-                      </div>
-                      <Progress 
-                        value={(assignment.completedQuestions / assignment.totalQuestions) * 100}
-                        className="h-2"
-                      />
-                    </div>
+                        {/* Progress Bar */}
+                        <div className="space-y-2 mb-4">
+                          <div className="flex justify-between text-sm">
+                            <span>Progress</span>
+                            <span>{completionPercentage}%</span>
+                          </div>
+                          <Progress 
+                            value={completionPercentage}
+                            className="h-2"
+                          />
+                        </div>
 
-                    {/* Action Button */}
-                    <div className="flex justify-end">
-                      {assignment.status === 'completed' ? (
-                        <Button variant="outline" size="sm">
-                          Review Answers
-                        </Button>
-                      ) : (
-                        <Button size="sm">
-                          <Play className="h-4 w-4 mr-2" />
-                          {assignment.status === 'pending' ? 'Start Assignment' : 'Continue'}
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                        {/* Action Button */}
+                        <div className="flex justify-end">
+                          {assignment.student_status === 'SUBMITTED' ? (
+                            <Button variant="outline" size="sm">
+                              Review Answers
+                            </Button>
+                          ) : (
+                            <Button size="sm">
+                              <Play className="h-4 w-4 mr-2" />
+                              {assignment.student_status === 'NOT_STARTED' ? 'Start Assignment' : 'Continue'}
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="solve">

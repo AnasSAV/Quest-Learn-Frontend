@@ -26,5 +26,7 @@ export const api = {
   getAllClassrooms: teacherApi.getAllClassrooms,
   
   // Student methods
-  submitAnswer: studentApi.submitAnswer,
+  getUserByEmail: studentApi.getUserByEmail,
+  getStudentClassrooms: studentApi.getStudentClassrooms,
+  getClassroomAssignments: studentApi.getClassroomAssignments,
 };
