@@ -1,5 +1,14 @@
 import { apiClient } from './api.client';
 
+export interface CreateAssignmentRequest {
+  classroom_id: string;
+  title: string;
+  description: string;
+  opens_at: string;
+  due_at: string;
+  shuffle_questions: boolean;
+}
+
 export interface Assignment {
   id: string;
   classroom_id: string;
@@ -62,6 +71,12 @@ export const teacherApi = {
   // Get all assignments for teacher
   getAllAssignments: async (): Promise<Assignment[]> => {
     const response = await apiClient.get('/assignments/all');
+    return response.data;
+  },
+
+  // Create new assignment
+  createAssignment: async (assignmentData: CreateAssignmentRequest): Promise<Assignment> => {
+    const response = await apiClient.post('/assignments', assignmentData);
     return response.data;
   },
 

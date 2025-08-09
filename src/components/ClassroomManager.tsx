@@ -201,9 +201,6 @@ const ClassroomManager = ({ onClassroomSelect, selectedClassroomId }: ClassroomM
                     <Users className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <h4 className="font-medium">{classroom.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Classroom ID: {classroom.id.slice(0, 8)}...
-                      </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">

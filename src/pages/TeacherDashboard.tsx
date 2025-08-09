@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import TeacherUploadForm from '@/components/TeacherUploadForm';
 import ClassroomManager from '@/components/ClassroomManager';
+import CreateAssignmentForm from '@/components/CreateAssignmentForm';
 import { authApi } from '@/services/auth.api';
 import { teacherApi, type Assignment } from '@/services/teacher.api';
 
@@ -28,6 +29,7 @@ const TeacherDashboard = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [filteredAssignments, setFilteredAssignments] = useState<Assignment[]>([]);
   const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('assignments');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -75,6 +77,17 @@ const TeacherDashboard = () => {
 
   const handleClassroomSelect = (classroomId: string | null) => {
     setSelectedClassroomId(classroomId);
+  };
+
+  const handleCreateAssignment = () => {
+    setActiveTab('create');
+  };
+
+  const handleAssignmentCreated = (newAssignment: Assignment) => {
+    // Add the new assignment to the list and refresh the view
+    setAssignments(prev => [newAssignment, ...prev]);
+    // Show a success message (you can add a toast notification here)
+    console.log('Assignment created successfully:', newAssignment);
   };
 
   const handleLogout = async () => {
@@ -198,9 +211,10 @@ const TeacherDashboard = () => {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="assignments" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList>
             <TabsTrigger value="assignments">Assignments</TabsTrigger>
+            <TabsTrigger value="create">Create Assignment</TabsTrigger>
             <TabsTrigger value="classrooms">Classrooms</TabsTrigger>
             <TabsTrigger value="upload">Upload New</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -240,7 +254,7 @@ const TeacherDashboard = () => {
                       <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                       Refresh
                     </Button>
-                    <Button>
+                    <Button onClick={handleCreateAssignment}>
                       <Plus className="h-4 w-4 mr-2" />
                       New Assignment
                     </Button>
@@ -329,6 +343,13 @@ const TeacherDashboard = () => {
                 )}
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="create">
+            <CreateAssignmentForm 
+              onAssignmentCreated={handleAssignmentCreated}
+              selectedClassroomId={selectedClassroomId}
+            />
           </TabsContent>
 
           <TabsContent value="classrooms">
