@@ -45,6 +45,7 @@ import {
 import TeacherUploadForm from '@/components/TeacherUploadForm';
 import ClassroomManager from '@/components/ClassroomManager';
 import CreateAssignmentForm from '@/components/CreateAssignmentForm';
+import QuestionManager from '@/components/QuestionManager';
 import { authApi } from '@/services/auth.api';
 import { teacherApi, type Assignment } from '@/services/teacher.api';
 
@@ -57,6 +58,7 @@ const TeacherDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [managingQuestionsForAssignment, setManagingQuestionsForAssignment] = useState<Assignment | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -365,6 +367,12 @@ const TeacherDashboard = () => {
                                       <Eye className="h-4 w-4 mr-2" />
                                       View Details
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => setManagingQuestionsForAssignment(assignment)}
+                                    >
+                                      <FileText className="h-4 w-4 mr-2" />
+                                      Manage Questions
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem>
                                       <Edit className="h-4 w-4 mr-2" />
                                       Edit Assignment
@@ -523,13 +531,9 @@ const TeacherDashboard = () => {
                                 </div>
 
                                 <div className="flex items-center gap-1.5">
-                                  <Button variant="outline" size="sm" className="h-8 text-xs hover:border-foreground/30">
+                                  <Button  onClick={() => setManagingQuestionsForAssignment(assignment)} variant="outline" size="sm" className="h-8 text-xs hover:border-foreground/30">
                                     <Eye className="h-3.5 w-3.5 mr-1" />
                                     View
-                                  </Button>
-                                  <Button variant="outline" size="sm" className="h-8 text-xs hover:border-foreground/30">
-                                    <Download className="h-3.5 w-3.5 mr-1" />
-                                    Export
                                   </Button>
                                   <Button
                                     variant="outline"
@@ -613,6 +617,18 @@ const TeacherDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Question Manager Modal */}
+      {managingQuestionsForAssignment && (
+        <div className="fixed inset-0 bg-background z-50 overflow-auto">
+          <div className="container mx-auto py-6">
+            <QuestionManager
+              assignment={managingQuestionsForAssignment}
+              onClose={() => setManagingQuestionsForAssignment(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
