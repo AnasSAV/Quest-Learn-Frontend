@@ -125,4 +125,9 @@ export const teacherApi = {
     const response = await apiClient.get('/teacher/recent-assignments');
     return response.data;
   },
+
+  // Delete assignment
+  deleteAssignment: async (assignmentId: string): Promise<void> => {
+    await apiClient.delete(`/assignments/${assignmentId}`);
+  },
 };
