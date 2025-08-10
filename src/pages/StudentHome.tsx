@@ -1,5 +1,3 @@
-import StudentAssignmentView from '@/components/StudentAssignmentView';
-
 const StudentHome = () => {
   return (
     <div className="min-h-screen bg-background">
@@ -11,7 +9,12 @@ const StudentHome = () => {
           </p>
         </div>
 
-        <StudentAssignmentView />
+        <div className="text-center py-12">
+          <h3 className="text-lg font-semibold text-foreground mb-2">Go to Dashboard</h3>
+          <p className="text-muted-foreground">
+            Visit your dashboard to see and complete your assignments.
+          </p>
+        </div>
       </div>
     </div>
   );

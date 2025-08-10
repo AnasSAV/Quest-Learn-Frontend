@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   BookOpen, 
   CheckCircle, 
@@ -18,9 +19,12 @@ import {
   Play,
   RefreshCw
 } from 'lucide-react';
-import StudentAssignmentView from '@/components/StudentAssignmentView';
 import { authApi } from '@/services/auth.api';
-import { studentApi, type StudentAssignment, type UserProfile } from '@/services/student.api';
+import { studentApi, type StudentAssignment, type UserProfile, type SubmitAttemptResponse } from '@/services/student.api';
+
+// Dynamic import for StudentAssignmentView
+const StudentAssignmentView = lazy(() => import('../components/StudentAssignmentView'));
+const AssignmentResultView = lazy(() => import('../components/AssignmentResultView'));
 
 const StudentDashboard = () => {
   const [userEmail, setUserEmail] = useState('');
@@ -34,6 +38,10 @@ const StudentDashboard = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
+  const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
+  const [selectedAssignmentForResult, setSelectedAssignmentForResult] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -160,6 +168,33 @@ const StudentDashboard = () => {
     if (assignment.is_submitted_by_student) return 100;
     if (assignment.student_status === 'IN_PROGRESS') return 50;
     return 0;
+  };
+
+  const handleStartAssignment = (assignmentId: string) => {
+    setSelectedAssignmentId(assignmentId);
+    setIsAssignmentDialogOpen(true);
+  };
+
+  const handleAssignmentComplete = (result: SubmitAttemptResponse) => {
+    setIsAssignmentDialogOpen(false);
+    setSelectedAssignmentId(null);
+    // Refresh assignments to get updated status
+    fetchStudentData();
+  };
+
+  const handleAssignmentCancel = () => {
+    setIsAssignmentDialogOpen(false);
+    setSelectedAssignmentId(null);
+  };
+
+  const handleViewResults = (assignmentId: string) => {
+    setSelectedAssignmentForResult(assignmentId);
+    setIsResultDialogOpen(true);
+  };
+
+  const handleResultsClose = () => {
+    setIsResultDialogOpen(false);
+    setSelectedAssignmentForResult(null);
   };
 
   return (
@@ -335,11 +370,18 @@ const StudentDashboard = () => {
                         {/* Action Button */}
                         <div className="flex justify-end">
                           {assignment.student_status === 'SUBMITTED' ? (
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleViewResults(assignment.id)}
+                            >
                               Review Answers
                             </Button>
                           ) : (
-                            <Button size="sm">
+                            <Button 
+                              size="sm"
+                              onClick={() => handleStartAssignment(assignment.id)}
+                            >
                               <Play className="h-4 w-4 mr-2" />
                               {assignment.student_status === 'NOT_STARTED' ? 'Start Assignment' : 'Continue'}
                             </Button>
@@ -359,7 +401,13 @@ const StudentDashboard = () => {
                 <CardTitle>Solve Math Problems</CardTitle>
               </CardHeader>
               <CardContent>
-                <StudentAssignmentView />
+                <div className="text-center py-12">
+                  <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">Practice Mode Coming Soon</h3>
+                  <p className="text-muted-foreground">
+                    Practice problems and additional exercises will be available here.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -381,6 +429,44 @@ const StudentDashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Assignment Dialog */}
+        <Dialog open={isAssignmentDialogOpen} onOpenChange={setIsAssignmentDialogOpen}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle>Assignment</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-y-auto max-h-[calc(90vh-8rem)]">
+              <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+                <StudentAssignmentView
+                  assignmentId={selectedAssignmentId || undefined}
+                  onComplete={handleAssignmentComplete}
+                  onCancel={handleAssignmentCancel}
+                />
+              </Suspense>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Results Dialog */}
+        <Dialog open={isResultDialogOpen} onOpenChange={setIsResultDialogOpen}>
+          <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle>Assignment Results</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-y-auto max-h-[calc(90vh-8rem)]">
+              <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+                {selectedAssignmentForResult && studentProfile && (
+                  <AssignmentResultView
+                    assignmentId={selectedAssignmentForResult}
+                    studentId={studentProfile.id}
+                    onBack={handleResultsClose}
+                  />
+                )}
+              </Suspense>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
