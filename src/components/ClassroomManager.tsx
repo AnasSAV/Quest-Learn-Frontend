@@ -115,13 +115,13 @@ const ClassroomManager = ({ onClassroomSelect, selectedClassroomId }: ClassroomM
   }
 
   return (
-    <Card className="shadow-lg border-0 bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 backdrop-blur-sm">
-      <CardHeader className="pb-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
+    <Card className="shadow-md border-0 bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 backdrop-blur-sm">
+      <CardHeader className="py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <div>
-              <CardTitle className="text-xl font-semibold">My Classrooms</CardTitle>
-              <p className="text-blue-100 text-sm mt-1">
+              <CardTitle className="text-lg font-semibold">My Classrooms</CardTitle>
+              <p className="text-blue-100 text-xs mt-0.5">
                 Manage and organize your teaching spaces
               </p>
             </div>
@@ -130,9 +130,9 @@ const ClassroomManager = ({ onClassroomSelect, selectedClassroomId }: ClassroomM
             <DialogTrigger asChild>
               <Button 
                 size="sm" 
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm transition-all duration-200 hover:scale-105"
+                className="h-8 px-2 bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm transition-all duration-200"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3.5 w-3.5" />
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
@@ -187,40 +187,40 @@ const ClassroomManager = ({ onClassroomSelect, selectedClassroomId }: ClassroomM
           </Dialog>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="p-4">
         {error && (
-          <Alert variant="destructive" className="mb-6 border-red-200 bg-red-50/50 backdrop-blur-sm">
+          <Alert variant="destructive" className="mb-4 border-red-200 bg-red-50/50 backdrop-blur-sm">
             <AlertDescription className="text-red-800">{error}</AlertDescription>
           </Alert>
         )}
 
         {!Array.isArray(classrooms) || classrooms.length === 0 ? (
-          <div className="text-center py-12">
+          <div className="text-center py-8">
             <div className="relative mb-6">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur-2xl opacity-20 scale-150"></div>
-              <div className="relative p-6 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full w-24 h-24 mx-auto flex items-center justify-center">
-                <GraduationCap className="h-12 w-12 text-blue-600" />
+              <div className="relative p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
+                <GraduationCap className="h-10 w-10 text-blue-600" />
               </div>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Ready to Start Teaching?
             </h3>
-            <p className="text-gray-600 mb-6 max-w-sm mx-auto leading-relaxed">
+            <p className="text-gray-600 mb-4 max-w-sm mx-auto leading-relaxed text-sm">
               Create your first classroom to organize assignments and connect with your students.
             </p>
             <Button 
               onClick={() => setIsDialogOpen(true)}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 hover:scale-105 shadow-lg"
+              className="h-9 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md"
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
               Create Your First Classroom
             </Button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* All Classrooms Option */}
             <div
-              className={`group relative p-4 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden ${
+              className={`group relative p-3 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden ${
                 selectedClassroomId === null
                   ? 'border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md'
                   : 'border-gray-200 bg-white hover:border-blue-200 hover:shadow-lg hover:bg-blue-50/30'
@@ -230,16 +230,16 @@ const ClassroomManager = ({ onClassroomSelect, selectedClassroomId }: ClassroomM
               <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className={`p-3 rounded-xl transition-all duration-200 ${
+                  <div className={`p-2.5 rounded-xl transition-all duration-200 ${
                     selectedClassroomId === null 
                       ? 'bg-gradient-to-br from-blue-500 to-indigo-500 text-white shadow-lg' 
                       : 'bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600'
                   }`}>
-                    <Users className="h-5 w-5" />
+                    <Users className="h-4 w-4" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 text-lg">All Classrooms</h4>
-                    <p className="text-gray-500 text-sm mt-1">
+                    <h4 className="font-semibold text-gray-900 text-base">All Classrooms</h4>
+                    <p className="text-gray-500 text-xs mt-0.5">
                       View and manage assignments from all your classrooms
                     </p>
                   </div>
@@ -253,7 +253,7 @@ const ClassroomManager = ({ onClassroomSelect, selectedClassroomId }: ClassroomM
             {Array.isArray(classrooms) && classrooms.map((classroom, index) => (
               <div
                 key={classroom.id}
-                className={`group relative p-4 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden ${
+                className={`group relative p-3 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden ${
                   selectedClassroomId === classroom.id
                     ? 'border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md'
                     : 'border-gray-200 bg-white hover:border-blue-200 hover:shadow-lg hover:bg-blue-50/30'
@@ -264,16 +264,16 @@ const ClassroomManager = ({ onClassroomSelect, selectedClassroomId }: ClassroomM
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                 <div className="relative flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className={`p-3 rounded-xl transition-all duration-200 ${
+                    <div className={`p-2.5 rounded-xl transition-all duration-200 ${
                       selectedClassroomId === classroom.id 
                         ? 'bg-gradient-to-br from-blue-500 to-indigo-500 text-white shadow-lg' 
                         : 'bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600'
                     }`}>
-                      <BookOpen className="h-5 w-5" />
+                      <BookOpen className="h-4 w-4" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900 text-lg">{classroom.name}</h4>
-                      <div className="flex items-center space-x-4 mt-1">
+                      <h4 className="font-semibold text-gray-900 text-base">{classroom.name}</h4>
+                      <div className="flex items-center space-x-3 mt-0.5">
                       </div>
                     </div>
                   </div>

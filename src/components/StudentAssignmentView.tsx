@@ -375,41 +375,41 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4">
+      <div className="max-w-4xl mx-auto space-y-4">
         {/* Enhanced header with progress and timer */}
         <Card className="bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6">
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
             <div className="flex justify-between items-center text-white">
               <div className="space-y-2">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                    <BookOpen className="h-5 w-5" />
+                  <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                    <BookOpen className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-blue-100 text-sm">Question Progress</p>
-                    <p className="font-semibold text-lg">
+                    <p className="text-blue-100 text-xs">Question Progress</p>
+                    <p className="font-semibold text-base">
                       {currentQuestionIndex + 1} of {attemptData.questions.length}
                     </p>
                   </div>
                 </div>
-                <div className="w-64">
+                <div className="w-56">
                   <Progress 
                     value={((currentQuestionIndex + 1) / attemptData.questions.length) * 100}
-                    className="h-3 bg-blue-400 bg-opacity-30"
+                    className="h-2 bg-blue-400 bg-opacity-30"
                   />
                 </div>
               </div>
               <div className="text-right space-y-2">
                 <div className="flex items-center justify-end space-x-2">
-                  <Timer className={`h-5 w-5 ${timeLeft <= 10 ? 'text-red-300' : 'text-blue-200'}`} />
-                  <span className={`font-mono text-2xl font-bold ${timeLeft <= 10 ? 'text-red-200' : 'text-white'}`}>
+                  <Timer className={`h-4 w-4 ${timeLeft <= 10 ? 'text-red-300' : 'text-blue-200'}`} />
+                  <span className={`font-mono text-xl font-bold ${timeLeft <= 10 ? 'text-red-200' : 'text-white'}`}>
                     {formatTime(timeLeft)}
                   </span>
                 </div>
                 <div className="flex items-center justify-end space-x-2">
-                  <Award className="h-4 w-4 text-blue-200" />
-                  <Badge variant="secondary" className="bg-white bg-opacity-20 text-white border-0">
+                  <Award className="h-3.5 w-3.5 text-blue-200" />
+                  <Badge variant="secondary" className="bg-white bg-opacity-20 text-white border-0 text-xs py-0.5">
                     {currentQuestion.points} point{currentQuestion.points !== 1 ? 's' : ''}
                   </Badge>
                 </div>
@@ -419,10 +419,10 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
           
           {/* Time warning */}
           {timeLeft <= 10 && timeLeft > 0 && (
-            <div className="bg-red-500 text-white px-6 py-3">
+            <div className="bg-red-500 text-white px-4 py-2">
               <div className="flex items-center justify-center space-x-2">
-                <AlertCircle className="h-5 w-5 animate-pulse" />
-                <span className="font-medium">Time is running out! {timeLeft} seconds remaining</span>
+                <AlertCircle className="h-4 w-4 animate-pulse" />
+                <span className="font-medium text-sm">Time is running out! {timeLeft} seconds remaining</span>
               </div>
             </div>
           )}
@@ -430,23 +430,23 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
 
         {/* Enhanced Question Card */}
         <Card className="bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-100 p-6">
-            <div className="flex items-start space-x-4">
-              <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-100 p-4">
+            <div className="flex items-start space-x-3">
+              <div className="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-base">
                 {currentQuestionIndex + 1}
               </div>
               <div className="flex-1">
-                <CardTitle className="text-xl text-gray-900 leading-relaxed">
+                <CardTitle className="text-lg text-gray-900 leading-relaxed">
                   {currentQuestion.prompt_text}
                 </CardTitle>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-6 space-y-6">
+          <CardContent className="p-4 space-y-4">
             {/* Question Image */}
             {currentQuestion.image_key && (
               <div className="flex justify-center">
-                <div className="bg-gray-50 p-4 rounded-xl shadow-sm border max-w-2xl">
+                <div className="bg-gray-50 p-3 rounded-xl shadow-sm border max-w-xl">
                   <img 
                     src={getQuestionImageUrl(currentQuestion.image_key)} 
                     alt="Question" 
@@ -457,8 +457,8 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
             )}
 
             {/* Enhanced Options */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Choose your answer:</h3>
+            <div className="space-y-3">
+              <h3 className="text-base font-semibold text-gray-900 mb-3">Choose your answer:</h3>
               {['A', 'B', 'C', 'D'].map((option) => {
                 const optionKey = option as 'A' | 'B' | 'C' | 'D';
                 const answer = answers.get(currentQuestion.id);
@@ -467,27 +467,27 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
                 return (
                   <div 
                     key={option}
-                    className={`group p-5 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-md ${
+                    className={`group p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-md ${
                       isSelected 
-                        ? 'border-blue-500 bg-blue-50 shadow-md transform scale-[1.02]' 
+                        ? 'border-blue-500 bg-blue-50 shadow-md transform scale-[1.01]' 
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                     onClick={() => handleAnswerSelect(optionKey)}
                   >
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold transition-colors ${
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold transition-colors ${
                         isSelected 
                           ? 'border-blue-500 bg-blue-500 text-white' 
                           : 'border-gray-300 text-gray-600 group-hover:border-blue-400'
                       }`}>
                         {option}
                       </div>
-                      <span className={`text-lg ${isSelected ? 'text-blue-700 font-medium' : 'text-gray-800'}`}>
+                      <span className={`text-base ${isSelected ? 'text-blue-700 font-medium' : 'text-gray-800'}`}>
                         {getOptionText(currentQuestion, optionKey)}
                       </span>
                     </div>
                     {isSelected && (
-                      <div className="mt-3 flex items-center text-blue-600 text-sm">
+                      <div className="mt-2 flex items-center text-blue-600 text-xs">
                         <CheckCircle className="h-4 w-4 mr-1" />
                         Selected
                       </div>
@@ -508,27 +508,26 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
 
         {/* Enhanced Navigation */}
         <Card className="bg-white shadow-lg border-0 rounded-2xl">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex justify-between items-center">
               <Button
                 variant="outline"
                 onClick={handlePreviousQuestion}
                 disabled={currentQuestionIndex === 0}
-                size="lg"
-                className="px-6"
+                className="px-5 py-5"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Previous
               </Button>
 
               <div className="text-center space-y-1">
-                <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+                <div className="flex items-center justify-center space-x-2 text-xs text-gray-600">
                   <TrendingUp className="h-4 w-4" />
                   <span>{answers.size} of {attemptData.questions.length} answered</span>
                 </div>
                 <Progress 
                   value={(answers.size / attemptData.questions.length) * 100} 
-                  className="w-32 h-2"
+                  className="w-28 h-1.5"
                 />
               </div>
 
@@ -536,8 +535,7 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
                 <Button
                   onClick={handleSubmitAssignment}
                   disabled={isSubmitting}
-                  size="lg"
-                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8"
+                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-5"
                 >
                   {isSubmitting ? (
                     <>
@@ -555,8 +553,7 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
                 <Button
                   onClick={handleNextQuestion}
                   disabled={!answers.has(currentQuestion.id)}
-                  size="lg"
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6"
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-5"
                 >
                   Next Question
                   <ArrowRight className="h-4 w-4 ml-2" />

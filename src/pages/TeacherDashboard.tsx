@@ -42,6 +42,7 @@ import {
   MoreVertical,
   AlertTriangle
 } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 import TeacherUploadForm from '@/components/TeacherUploadForm';
 import ClassroomManager from '@/components/ClassroomManager';
 import CreateAssignmentForm from '@/components/CreateAssignmentForm';
@@ -177,22 +178,33 @@ const TeacherDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-semibold text-foreground">Teacher Dashboard</h1>
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                  <GraduationCap className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Teacher Dashboard</h1>
+                  <p className="text-sm text-gray-600">Manage classrooms and assignments</p>
+                </div>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Avatar>
-                  <AvatarFallback>
+              <div className="flex items-center space-x-3 bg-gray-50 rounded-xl px-4 py-2">
+                <Avatar className="w-8 h-8">
+                  <AvatarFallback className="bg-blue-500 text-white text-sm">
                     {userEmail.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm text-muted-foreground">{userEmail}</span>
+                <div className="text-left">
+                  <p className="text-sm font-medium text-gray-900">Teacher</p>
+                  <p className="text-xs text-gray-500">{userEmail}</p>
+                </div>
               </div>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
+              <Button variant="outline" size="sm" onClick={handleLogout} className="hover:bg-red-50 hover:text-red-600 hover:border-red-200">
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
               </Button>
@@ -201,7 +213,7 @@ const TeacherDashboard = () => {
         </div>
       </header>
 
-      <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-4 gap-6 mb-8">
           <Card>
@@ -265,9 +277,9 @@ const TeacherDashboard = () => {
           </TabsList>
 
           <TabsContent value="assignments" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-[375px,1fr] gap-6">
               {/* Classroom Filter Sidebar */}
-              <div className="lg:col-span-1">
+              <div>
                 <ClassroomManager
                   onClassroomSelect={handleClassroomSelect}
                   selectedClassroomId={selectedClassroomId}
@@ -275,7 +287,7 @@ const TeacherDashboard = () => {
               </div>
 
               {/* Assignments Content */}
-              <div className="lg:col-span-3 space-y-6">
+              <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-2xl font-bold text-foreground">
