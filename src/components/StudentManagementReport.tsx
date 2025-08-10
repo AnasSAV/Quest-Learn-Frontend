@@ -117,6 +117,17 @@ const StudentManagementReport = () => {
     return { label: 'Needs Improvement', color: 'bg-red-500' };
   };
 
+  const getOptionValue = (question: any, option: 'A' | 'B' | 'C' | 'D' | undefined) => {
+    if (!option) return null;
+    switch (option) {
+      case 'A': return question.option_a;
+      case 'B': return question.option_b;
+      case 'C': return question.option_c;
+      case 'D': return question.option_d;
+      default: return null;
+    }
+  };
+
   const handleViewStudent = (student: StudentReport) => {
     setSelectedStudent(student);
     setIsStudentDialogOpen(true);
@@ -499,51 +510,101 @@ const StudentManagementReport = () => {
           </DialogHeader>
           <ScrollArea className="max-h-[calc(90vh-8rem)] pr-4">
             {selectedAssignment && (
-              <div className="space-y-6">
-                {selectedAssignment.question_details
-                  .sort((a, b) => a.order_index - b.order_index)
-                  .map((question, index) => (
-                  <Card key={question.question_id} className="border border-gray-200">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <h4 className="text-lg font-semibold text-gray-900">
-                          Question {index + 1}
-                        </h4>
-                        <div className="flex items-center space-x-2">
-                          <Badge 
-                            variant={question.status === 'CORRECT' ? 'default' : question.status === 'INCORRECT' ? 'destructive' : 'secondary'}
-                            className={
-                              question.status === 'CORRECT' ? 'bg-green-500' : 
-                              question.status === 'INCORRECT' ? 'bg-red-500' : ''
-                            }
-                          >
-                            {question.status === 'NOT_ATTEMPTED' ? 'Not Attempted' : question.status}
-                          </Badge>
-                          <Badge variant="outline">
-                            {question.points} pts
-                          </Badge>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <p className="text-gray-900">{question.question_text}</p>
+              <ScrollArea className="max-h-[70vh] pr-2">
+                <div className="space-y-6">
+                  {selectedAssignment.question_details
+                    .sort((a, b) => a.order_index - b.order_index)
+                    .map((question, index) => (
+                    <Card key={question.question_id} className="border border-gray-200">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <h4 className="text-lg font-semibold text-gray-900">
+                            Question {index + 1}
+                          </h4>
+                          <div className="flex items-center space-x-2">
+                            <Badge 
+                              variant={
+                                question.is_correct === true ? 'default' : 
+                                question.is_correct === false ? 'destructive' : 
+                                'secondary'
+                              }
+                              className={
+                                question.is_correct === true ? 'bg-green-500' : 
+                                question.is_correct === false ? 'bg-red-500' : ''
+                              }
+                            >
+                              {question.is_correct === true ? 'CORRECT' : 
+                               question.is_correct === false ? 'INCORRECT' : 
+                               'NOT ATTEMPTED'}
+                            </Badge>
+                            <Badge variant="outline">
+                              {question.points_earned || 0}/{question.points} pts
+                            </Badge>
+                          </div>
                         </div>
                         
-                        {question.image_key && (
-                          <div className="flex justify-center">
-                            <img 
-                              src={getQuestionImageUrl(question.image_key)} 
-                              alt="Question"
-                              className="max-w-md w-full h-auto rounded-lg border"
-                            />
+                        <div className="space-y-4">
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <p className="text-gray-900">{question.question_text}</p>
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                          
+                          {question.image_key && (
+                            <div className="flex justify-center">
+                              <img 
+                                src={getQuestionImageUrl(question.image_key)} 
+                                alt="Question"
+                                className="max-w-md w-full h-auto rounded-lg border"
+                              />
+                            </div>
+                          )}
+
+    
+
+                          {/* Show explanation if answer is incorrect */}
+                          {question.is_correct === false && question.student_answer && (
+                            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <XCircle className="h-4 w-4 text-red-600" />
+                                <h5 className="font-semibold text-red-800">Incorrect Answer</h5>
+                              </div>
+                              <p className="text-red-700 text-sm">
+                                The student selected "{getOptionValue(question, question.student_answer as 'A' | 'B' | 'C' | 'D') || question.student_answer}" but the correct answer is "{getOptionValue(question, question.correct_option) || 
+                                'Unknown'}".
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Show success message if answer is correct */}
+                          {question.is_correct === true && (
+                            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                <h5 className="font-semibold text-green-800">Correct Answer!</h5>
+                              </div>
+                              <p className="text-green-700 text-sm">
+                                The student correctly answered "{getOptionValue(question, question.student_answer as 'A' | 'B' | 'C' | 'D') || question.student_answer}".
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Show not attempted message */}
+                          {question.is_correct === undefined && (
+                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <AlertTriangle className="h-4 w-4 text-gray-600" />
+                                <h5 className="font-semibold text-gray-800">Not Attempted</h5>
+                              </div>
+                              <p className="text-gray-700 text-sm">
+                                This question was not attempted by the student.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
             )}
           </ScrollArea>
         </DialogContent>

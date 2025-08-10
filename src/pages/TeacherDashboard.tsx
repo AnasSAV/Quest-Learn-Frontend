@@ -49,6 +49,7 @@ import CreateAssignmentForm from '@/components/CreateAssignmentForm';
 import QuestionManager from '@/components/QuestionManager';
 import StudentManagementReport from '@/components/StudentManagementReport';
 import { authApi } from '@/services/auth.api';
+import { toast } from '@/components/ui/sonner';
 import { teacherApi, type Assignment } from '@/services/teacher.api';
 
 const TeacherDashboard = () => {
@@ -116,7 +117,11 @@ const TeacherDashboard = () => {
     // Add the new assignment to the list and refresh the view
     setAssignments(prev => [newAssignment, ...prev]);
     // Show a success message (you can add a toast notification here)
-    console.log('Assignment created successfully:', newAssignment);
+    toast.success('Assignment created', {
+      description: 'Your assignment was created successfully.',
+    });
+    // Navigate back to assignments tab
+    setActiveTab('assignments');
   };
 
   const handleDeleteAssignment = async (assignmentId: string) => {
@@ -270,9 +275,6 @@ const TeacherDashboard = () => {
           <TabsList>
             <TabsTrigger value="assignments">Assignments</TabsTrigger>
             <TabsTrigger value="create">Create Assignment</TabsTrigger>
-            <TabsTrigger value="classrooms">Classrooms</TabsTrigger>
-            <TabsTrigger value="upload">Upload New</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="students">Students</TabsTrigger>
           </TabsList>
 

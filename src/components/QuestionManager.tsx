@@ -22,6 +22,7 @@ import {
 import { questionApi, type Question, type CreateQuestionRequest } from '@/services/question.api';
 import { type Assignment } from '@/services/teacher.api';
 import { getQuestionImageUrl } from '@/lib/utils';
+import { toast } from '@/components/ui/sonner';
 
 interface QuestionManagerProps {
   assignment: Assignment;
@@ -55,6 +56,7 @@ const QuestionManager = ({ assignment, onClose }: QuestionManagerProps) => {
   const [imagePreview, setImagePreview] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedImageKey, setUploadedImageKey] = useState<string>('');
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   useEffect(() => {
     fetchQuestions();
@@ -96,6 +98,37 @@ const QuestionManager = ({ assignment, onClose }: QuestionManagerProps) => {
     setError('');
   };
 
+  const handleDropImage = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    // Reuse the same validations as selection
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Image must be less than 2MB');
+      return;
+    }
+    if (!file.type.startsWith('image/png')) {
+      setError('Only PNG images are allowed');
+      return;
+    }
+    setSelectedImage(file);
+    setImagePreview(URL.createObjectURL(file));
+    setError('');
+    setIsDraggingOver(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(true);
+  };
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+  };
+
   const handleImageUpload = async () => {
     if (!selectedImage) return;
 
@@ -130,6 +163,29 @@ const QuestionManager = ({ assignment, onClose }: QuestionManagerProps) => {
 
   const handleInputChange = (field: keyof CreateQuestionRequest, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const setCorrectOption = (opt: 'A' | 'B' | 'C' | 'D') => {
+    setFormData(prev => ({ ...prev, correct_option: opt }));
+  };
+
+  const increment = (field: 'per_question_seconds' | 'points', step: number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: Math.max(1, (prev as any)[field] + step),
+    }));
+  };
+
+  const isFormValid = () => {
+    return (
+      formData.prompt_text.trim() &&
+      formData.option_a.trim() &&
+      formData.option_b.trim() &&
+      formData.option_c.trim() &&
+      formData.option_d.trim() &&
+      formData.per_question_seconds > 0 &&
+      formData.points > 0
+    );
   };
 
   const handleCreateQuestion = async (e: React.FormEvent) => {
@@ -176,6 +232,7 @@ const QuestionManager = ({ assignment, onClose }: QuestionManagerProps) => {
       handleRemoveImage();
       setIsDialogOpen(false);
       setError('');
+      toast.success('Question created', { description: 'Your question was added to the assignment.' });
     } catch (err: any) {
       console.error('Error creating question:', err);
       setError(err.response?.data?.message || 'Failed to create question');
@@ -214,182 +271,212 @@ const QuestionManager = ({ assignment, onClose }: QuestionManagerProps) => {
         <div className="flex space-x-2">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Question
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create New Question</DialogTitle>
+                <DialogTitle className="text-lg">Create New Question</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleCreateQuestion} className="space-y-4">
-                {/* Question Prompt */}
-                <div className="space-y-2">
-                  <Label htmlFor="prompt">Question Prompt *</Label>
-                  <Textarea
-                    id="prompt"
-                    value={formData.prompt_text}
-                    onChange={(e) => handleInputChange('prompt_text', e.target.value)}
-                    placeholder="Enter the question text..."
-                    rows={3}
-                    required
-                  />
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  {/* Left: Form */}
+                  <div className="md:col-span-3 space-y-4">
+                    {/* Question Prompt */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="prompt">Question Prompt *</Label>
+                      <Textarea
+                        id="prompt"
+                        value={formData.prompt_text}
+                        onChange={(e) => handleInputChange('prompt_text', e.target.value)}
+                        placeholder="Enter the question text..."
+                        className="bg-white border-gray-200 rounded-md"
+                        rows={3}
+                        maxLength={400}
+                        required
+                      />
+                      <div className="text-xs text-muted-foreground text-right ">{formData.prompt_text.length}/400</div>
+                    </div>
 
-                {/* Image Upload */}
-                <div className="space-y-2">
-                  <Label>Question Image (Optional)</Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                    {imagePreview ? (
-                      <div className="space-y-2">
-                        <img 
-                          src={imagePreview} 
-                          alt="Preview" 
-                          className="max-w-full h-48 object-contain mx-auto"
-                        />
-                        <div className="flex justify-center space-x-2">
-                          {!uploadedImageKey && (
-                            <Button
-                              type="button"
-                              onClick={handleImageUpload}
-                              disabled={isUploading}
+                    {/* Image Upload */}
+                    <div className="space-y-2">
+                      <Label>Question Image (Optional)</Label>
+                      <div
+                        className={`border-2 border-dashed rounded-lg bg-white p-4 text-center transition-colors ${
+                          imagePreview ? 'border-gray-300' : isDraggingOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
+                        }`}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDropImage}
+                      >
+                        {imagePreview ? (
+                          <div className="space-y-2">
+                            <img 
+                              src={imagePreview} 
+                              alt="Preview" 
+                              className="max-w-full h-40 object-contain mx-auto"
+                            />
+                            <div className="flex justify-center gap-2">
+                              {!uploadedImageKey && (
+                                <Button
+                                  type="button"
+                                  onClick={handleImageUpload}
+                                  disabled={isUploading}
+                                  size="sm"
+                                >
+                                  {isUploading ? 'Uploading...' : 'Upload Image'}
+                                </Button>
+                              )}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleRemoveImage}
+                                size="sm"
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Remove
+                              </Button>
+                            </div>
+                            {uploadedImageKey && (
+                              <p className="text-xs text-green-600 text-center">✓ Image uploaded successfully</p>
+                            )}
+                          </div>
+                        ) : (
+                          <div>
+                            <ImageIcon className="h-10 w-10 text-gray-400 mx-auto mb-2" />
+                            <p className="text-xs text-gray-500 mb-2">Drag & drop a PNG (max 2MB) or select a file</p>
+                            <input
+                              type="file"
+                              accept=".png"
+                              onChange={handleImageSelect}
+                              className="hidden"
+                              id="image-upload"
+                            />
+                            <Button 
+                              type="button" 
+                              variant="outline" 
                               size="sm"
+                              onClick={() => document.getElementById('image-upload')?.click()}
                             >
-                              {isUploading ? 'Uploading...' : 'Upload Image'}
+                              <Upload className="h-4 w-4 mr-2" />
+                              Select Image
                             </Button>
-                          )}
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleRemoveImage}
-                            size="sm"
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Remove
-                          </Button>
-                        </div>
-                        {uploadedImageKey && (
-                          <p className="text-sm text-green-600 text-center">
-                            ✓ Image uploaded successfully
-                          </p>
+                          </div>
                         )}
                       </div>
-                    ) : (
-                      <div className="text-center">
-                        <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-500 mb-2">
-                          Upload a PNG image (max 2MB)
-                        </p>
-                        <input
-                          type="file"
-                          accept=".png"
-                          onChange={handleImageSelect}
-                          className="hidden"
-                          id="image-upload"
-                        />
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => document.getElementById('image-upload')?.click()}
-                        >
-                          <Upload className="h-4 w-4 mr-2" />
-                          Select Image
-                        </Button>
+                    </div>
+
+                    {/* Options */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {(['A','B','C','D'] as const).map((opt) => (
+                        <div key={opt} className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor={`option_${opt.toLowerCase()}`}>Option {opt} *</Label>
+
+                          </div>
+                          <Input
+                            id={`option_${opt.toLowerCase()}`}
+                            value={(formData as any)[`option_${opt.toLowerCase()}`]}
+                            onChange={(e) => handleInputChange(`option_${opt.toLowerCase()}` as any, e.target.value)}
+                            placeholder={`Enter option ${opt}`}
+                            maxLength={120}
+                            className="border rounded-md bg-white border-gray-200"
+                            required
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Correct Option */}
+                    <div className="space-y-2">
+                      <Label>Correct Answer *</Label>
+                      <div className="flex gap-2">
+                        {(['A','B','C','D'] as const).map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setCorrectOption(opt)}
+                            className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${
+                              formData.correct_option === opt
+                                ? 'border-green-500 bg-green-50 text-green-700'
+                                : 'border-gray-200 bg-white hover:border-blue-300'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                </div>
+                    </div>
 
-                {/* Options */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="option_a">Option A *</Label>
-                    <Input
-                      id="option_a"
-                      value={formData.option_a}
-                      onChange={(e) => handleInputChange('option_a', e.target.value)}
-                      placeholder="Enter option A"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="option_b">Option B *</Label>
-                    <Input
-                      id="option_b"
-                      value={formData.option_b}
-                      onChange={(e) => handleInputChange('option_b', e.target.value)}
-                      placeholder="Enter option B"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="option_c">Option C *</Label>
-                    <Input
-                      id="option_c"
-                      value={formData.option_c}
-                      onChange={(e) => handleInputChange('option_c', e.target.value)}
-                      placeholder="Enter option C"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="option_d">Option D *</Label>
-                    <Input
-                      id="option_d"
-                      value={formData.option_d}
-                      onChange={(e) => handleInputChange('option_d', e.target.value)}
-                      placeholder="Enter option D"
-                      required
-                    />
-                  </div>
-                </div>
+                    {/* Time and Points */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="time">Time Limit (seconds)</Label>
+                        <div className="flex items-center gap-2 border rounded-md">
+                          <Input
+                            id="time"
+                            type="number"
+                            min="1"
+                            max="300"
+                            value={formData.per_question_seconds}
+                            onChange={(e) => handleInputChange('per_question_seconds', parseInt(e.target.value))}
+                            className="text-center rounded-md bg-white border-gray-200"
+                          />
 
-                {/* Correct Option */}
-                <div className="space-y-2">
-                  <Label>Correct Answer *</Label>
-                  <Select
-                    value={formData.correct_option}
-                    onValueChange={(value: 'A' | 'B' | 'C' | 'D') => 
-                      handleInputChange('correct_option', value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="A">A - {formData.option_a || 'Option A'}</SelectItem>
-                      <SelectItem value="B">B - {formData.option_b || 'Option B'}</SelectItem>
-                      <SelectItem value="C">C - {formData.option_c || 'Option C'}</SelectItem>
-                      <SelectItem value="D">D - {formData.option_d || 'Option D'}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="points">Points</Label>
+                        <div className="flex items-center gap-2 border rounded-md">
+                          <Input
+                            id="points"
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={formData.points}
+                            onChange={(e) => handleInputChange('points', parseInt(e.target.value))}
+                            className="text-center rounded-md bg-white border-gray-200"
+                          />
 
-                {/* Time and Points */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="time">Time Limit (seconds)</Label>
-                    <Input
-                      id="time"
-                      type="number"
-                      min="1"
-                      max="300"
-                      value={formData.per_question_seconds}
-                      onChange={(e) => handleInputChange('per_question_seconds', parseInt(e.target.value))}
-                    />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="points">Points</Label>
-                    <Input
-                      id="points"
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={formData.points}
-                      onChange={(e) => handleInputChange('points', parseInt(e.target.value))}
-                    />
+
+                  {/* Right: Live Preview */}
+                  <div className="md:col-span-2">
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Live Preview</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">1</div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-foreground">{formData.prompt_text || 'Your question text appears here'}</p>
+                          </div>
+                        </div>
+                        {imagePreview && (
+                          <div className="bg-gray-50 border rounded p-2">
+                            <img src={imagePreview} alt="Preview" className="w-full h-auto rounded" />
+                          </div>
+                        )}
+                        <div className="space-y-1.5">
+                          {(['A','B','C','D'] as const).map((opt) => (
+                            <div key={opt} className={`p-2 rounded border text-sm ${formData.correct_option === opt ? 'border-green-400 bg-green-50' : 'border-gray-200 bg-white'}`}>
+                              <span className="font-semibold mr-1">{opt}.</span>
+                              {(formData as any)[`option_${opt.toLowerCase()}`] || `Option ${opt}`}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {formData.per_question_seconds}s</div>
+                          <div className="flex items-center gap-1"><Star className="h-3.5 w-3.5" /> {formData.points} pts</div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
 
@@ -399,7 +486,7 @@ const QuestionManager = ({ assignment, onClose }: QuestionManagerProps) => {
                   </Alert>
                 )}
 
-                <div className="flex justify-end space-x-2">
+                <div className="flex justify-end gap-2">
                   <Button
                     type="button"
                     variant="outline"
@@ -409,7 +496,7 @@ const QuestionManager = ({ assignment, onClose }: QuestionManagerProps) => {
                   </Button>
                   <Button 
                     type="submit" 
-                    disabled={isCreating || (selectedImage && !uploadedImageKey)}
+                    disabled={isCreating || (selectedImage && !uploadedImageKey) || !isFormValid()}
                   >
                     {isCreating ? 'Creating...' : 'Create Question'}
                   </Button>
@@ -439,16 +526,16 @@ const QuestionManager = ({ assignment, onClose }: QuestionManagerProps) => {
       ) : (
         <div className="space-y-4">
           {questions.map((question, index) => (
-            <Card key={question.id}>
-              <CardHeader>
+            <Card key={question.id} className="border-l-4 border-blue-500">
+              <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center space-x-2">
-                    <Badge variant="secondary">Question {index + 1}</Badge>
-                    <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">Question {index + 1}</Badge>
+                    <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                       <Clock className="h-4 w-4" />
                       <span>{question.per_question_seconds}s</span>
                     </div>
-                    <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                       <Star className="h-4 w-4" />
                       <span>{question.points} pt{question.points !== 1 ? 's' : ''}</span>
                     </div>
@@ -463,37 +550,37 @@ const QuestionManager = ({ assignment, onClose }: QuestionManagerProps) => {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 <div>
-                  <h4 className="font-medium mb-2">{question.prompt_text}</h4>
+                  <h4 className="font-medium mb-2 text-sm">{question.prompt_text}</h4>
                   {question.image_key && (
-                    <div className="mb-4">
+                    <div className="mb-3">
                       <img 
                         src={getQuestionImageUrl(question.image_key)} 
                         alt="Question" 
-                        className="max-w-full h-48 object-contain border rounded"
+                        className="max-w-full h-40 object-contain border rounded"
                       />
                     </div>
                   )}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2">
-                  <div className={`p-2 rounded border ${getOptionStyle('A', question.correct_option)}`}>
+                  <div className={`p-2 rounded border text-sm ${getOptionStyle('A', question.correct_option)}`}>
                     <span className="font-semibold">A.</span> {question.option_a}
                   </div>
-                  <div className={`p-2 rounded border ${getOptionStyle('B', question.correct_option)}`}>
+                  <div className={`p-2 rounded border text-sm ${getOptionStyle('B', question.correct_option)}`}>
                     <span className="font-semibold">B.</span> {question.option_b}
                   </div>
-                  <div className={`p-2 rounded border ${getOptionStyle('C', question.correct_option)}`}>
+                  <div className={`p-2 rounded border text-sm ${getOptionStyle('C', question.correct_option)}`}>
                     <span className="font-semibold">C.</span> {question.option_c}
                   </div>
-                  <div className={`p-2 rounded border ${getOptionStyle('D', question.correct_option)}`}>
+                  <div className={`p-2 rounded border text-sm ${getOptionStyle('D', question.correct_option)}`}>
                     <span className="font-semibold">D.</span> {question.option_d}
                   </div>
                 </div>
                 
-                <div className="text-sm text-muted-foreground">
-                  Correct Answer: <Badge variant="outline">Option {question.correct_option}</Badge>
+                <div className="text-xs text-muted-foreground">
+                  Correct Answer: <Badge variant="outline" className="text-xs">Option {question.correct_option}</Badge>
                 </div>
               </CardContent>
             </Card>

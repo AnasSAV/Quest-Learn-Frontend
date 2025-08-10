@@ -83,7 +83,18 @@ export interface QuestionDetail {
   image_key: string;
   order_index: number;
   points: number;
-  status: string;
+  status?: string;
+  correct_option?: 'A' | 'B' | 'C' | 'D';
+  chosen_option?: 'A' | 'B' | 'C' | 'D';
+  student_answer?: string;
+  correct_answer?: string;
+  is_correct?: boolean;
+  points_earned?: number;
+  option_a?: string;
+  option_b?: string;
+  option_c?: string;
+  option_d?: string;
+  time_taken_seconds?: number;
 }
 
 export interface AssignmentResult {
