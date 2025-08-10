@@ -2,8 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Progress } from '@/components/ui/progress';
 import { 
   CheckCircle, 
   XCircle, 
@@ -92,8 +90,7 @@ const StudentAssignmentResultView = ({ assignment, onBack }: StudentAssignmentRe
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Badge variant="secondary" className="text-sm px-3 py-1">
-            <Calendar className="h-4 w-4 mr-1" />
+          <Badge variant="secondary" className="text-sm px-3 py-1 bg-green-500 text-white">
             Completed
           </Badge>
         </div>
@@ -127,9 +124,9 @@ const StudentAssignmentResultView = ({ assignment, onBack }: StudentAssignmentRe
               <div>
                 <p className="text-blue-100 text-sm font-medium">Correct Answers</p>
                 <p className="text-3xl font-bold">{correctAnswers}/{totalQuestions}</p>
-                <div className="mt-2">
-                  <Progress value={(correctAnswers / totalQuestions) * 100} className="h-2 bg-blue-300" />
-                </div>
+                <p className="text-blue-100 text-sm mt-2">
+                  {Math.round((correctAnswers / totalQuestions) * 100)}% correct
+                </p>
               </div>
               <Target className="h-12 w-12 text-blue-200" />
             </div>
@@ -225,19 +222,16 @@ const StudentAssignmentResultView = ({ assignment, onBack }: StudentAssignmentRe
             Questions & Answers Review
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[700px] pr-4">
-            <div className="space-y-8">
-              {assignment.questions
-                .sort((a, b) => a.order_index - b.order_index)
-                .map((question, index) => (
+        <CardContent className="max-h-[80vh] overflow-y-auto pr-4">
+          <div className="space-y-8">
+            {assignment.questions
+              .sort((a, b) => a.order_index - b.order_index)
+              .map((question, index) => (
                 <div key={question.id} className="relative">
                   <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-6 space-y-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-4">
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
-                          question.is_correct ? 'bg-green-500' : 'bg-red-500'
-                        }`}>
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${question.is_correct ? 'bg-green-500' : 'bg-red-500'}`}>
                           {index + 1}
                         </div>
                         <h3 className="text-xl font-semibold text-gray-900 mt-1">
@@ -355,8 +349,7 @@ const StudentAssignmentResultView = ({ assignment, onBack }: StudentAssignmentRe
                   )}
                 </div>
               ))}
-            </div>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
     </div>

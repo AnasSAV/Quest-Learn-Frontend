@@ -1,7 +1,9 @@
 import axios from 'axios';
+import { apiClient } from './api.client';
 import { jwtDecode } from 'jwt-decode';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const SUPPORTS_SERVER_LOGOUT = import.meta.env.VITE_SUPPORTS_SERVER_LOGOUT === 'true';
 
 export interface AuthResponse {
   access_token: string;
@@ -29,18 +31,16 @@ export const authApi = {
 
   logout: async (): Promise<void> => {
     const token = localStorage.getItem('token');
-    if (token && token !== 'demo-token') {
+    if (token && token !== 'demo-token' && SUPPORTS_SERVER_LOGOUT) {
       try {
-        await axios.post(`${API_BASE_URL}/auth/logout`, {}, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        await apiClient.post('/auth/logout', {});
       } catch (error) {
-        console.error('Logout error:', error);
+        // Silently ignore server logout failures; client logout still proceeds
       }
     }
     localStorage.clear();
+    // Redirect to base URL so the router can decide where to land (likely /login)
+    window.location.replace('/');
   },
 
   // Utility function to decode JWT token

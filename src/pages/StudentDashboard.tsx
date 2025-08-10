@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
@@ -134,8 +133,6 @@ const StudentDashboard = () => {
       await authApi.logout();
     } catch (error) {
       console.error('Logout error:', error);
-    } finally {
-      navigate('/login');
     }
   };
 
@@ -369,119 +366,86 @@ const StudentDashboard = () => {
                 <div className="grid gap-6">
                   {assignments.map((assignment) => {
                     const completionPercentage = getProgressPercentage(assignment);
-                    
+                    const isCompleted = assignment.student_status === 'SUBMITTED';
+                    const isLocked = new Date() < new Date(assignment.opens_at);
+
+                    const statusStyle = (() => {
+                      if (isCompleted) return { border: 'border-l-4 border-blue-500', badge: 'bg-green-100 text-green-700' };
+                      if (assignment.student_status === 'IN_PROGRESS') return { border: 'border-l-4 border-blue-500', badge: 'bg-blue-100 text-blue-700' };
+                      if (isLocked) return { border: 'border-l-4 border-orange-500', badge: 'bg-orange-100 text-orange-700' };
+                      return { border: 'border-l-4 border-gray-300', badge: 'bg-gray-100 text-gray-700' };
+                    })();
+
                     return (
-                      <Card key={assignment.id} className="border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-b">
-                          <div className="flex justify-between items-start">
-                            <div className="space-y-3 flex-1">
-                              <div className="flex items-start space-x-3">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${getStatusColor(assignment).replace('bg-', 'bg-') || 'bg-gray-500'}`}>
-                                  {getStatusIcon(assignment)}
-                                </div>
-                                <div className="flex-1">
-                                  <h3 className="text-xl font-bold text-gray-900 mb-1">{assignment.title}</h3>
-                                  <p className="text-gray-600 text-sm leading-relaxed">{assignment.description}</p>
-                                </div>
+                      <Card key={assignment.id} className={`overflow-hidden transition-shadow duration-200 hover:shadow-lg ${statusStyle.border}`}>
+                        <div className="p-5 bg-white">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="text-lg font-semibold text-gray-900 truncate">{assignment.title}</h3>
+                                <Badge className={`${statusStyle.badge} border-0`}>{getStatusText(assignment)}</Badge>
                               </div>
-                              
-                              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                                <div className="flex items-center space-x-1 bg-white px-3 py-1 rounded-full">
-                                  <Calendar className="h-4 w-4 text-red-500" />
-                                  <span>Due: {new Date(assignment.due_at).toLocaleDateString()}</span>
-                                </div>
-                                {new Date() < new Date(assignment.opens_at) && (
-                                  <div className="flex items-center space-x-1 bg-white px-3 py-1 rounded-full">
-                                    <Clock className="h-4 w-4 text-orange-500" />
-                                    <span>Opens: {new Date(assignment.opens_at).toLocaleDateString()}</span>
-                                  </div>
-                                )}
-                                <div className="flex items-center space-x-1 bg-white px-3 py-1 rounded-full">
-                                  <User className="h-4 w-4 text-blue-500" />
-                                  <span>Class: {assignment.classroom_name}</span>
-                                </div>
-                                <div className="flex items-center space-x-1 bg-white px-3 py-1 rounded-full">
-                                  <BookOpen className="h-4 w-4 text-purple-500" />
-                                  <span>{assignment.questions.length} question{assignment.questions.length !== 1 ? 's' : ''}</span>
-                                </div>
-                              </div>
+                              <p className="text-sm text-gray-600 line-clamp-2">{assignment.description}</p>
                             </div>
-                            
-                            <div className="flex flex-col items-end space-y-3 ml-6">
-                              <Badge 
-                                variant="secondary"
-                                className={`${getStatusColor(assignment).replace('bg-', 'bg-gradient-to-r from-').replace('-500', '-500 to-').replace('to-', getStatusColor(assignment).replace('bg-', 'to-').replace('-500', '-600'))} text-white border-0 px-3 py-1`}
-                              >
-                                <span className="flex items-center space-x-1">
-                                  {getStatusIcon(assignment)}
-                                  <span className="font-medium">{getStatusText(assignment)}</span>
-                                </span>
-                              </Badge>
-                              {assignment.percentage !== null && (
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  <Star className="h-3 w-3 mr-1" />
-                                  Score: {Math.round(assignment.percentage)}%
-                                </Badge>
+                            <div className="text-right shrink-0">
+                              {assignment.percentage !== null ? (
+                                <div className="text-sm font-medium text-gray-700">
+                                  <Star className="inline h-4 w-4 mr-1 text-yellow-500 align-middle" />
+                                  {Math.round(assignment.percentage)}%
+                                </div>
+                              ) : (
+                                <div className={`text-sm font-medium ${isCompleted ? 'text-green-600' : 'text-blue-600'}`}>
+                                  {completionPercentage}%
+                                </div>
                               )}
                             </div>
                           </div>
-                        </div>
 
-                        <CardContent className="p-6">
-                          {/* Enhanced Progress Bar */}
-                          <div className="space-y-3 mb-6">
-                            <div className="flex justify-between items-center text-sm">
-                              <span className="font-medium text-gray-700">Progress</span>
-                              <span className="text-blue-600 font-semibold">{completionPercentage}%</span>
+                          <div className="mt-4 flex flex-wrap items-center gap-3 text-xs">
+                            <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
+                              <Calendar className="h-3.5 w-3.5 text-gray-600" />
+                              <span className="text-gray-700">Due: {new Date(assignment.due_at).toLocaleDateString()}</span>
                             </div>
-                            <div className="relative">
-                              <Progress 
-                                value={completionPercentage}
-                                className="h-3 bg-gray-100"
-                              />
-                              <div className="absolute inset-y-0 left-0 flex items-center">
-                                <div 
-                                  className="h-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-300"
-                                  style={{ width: `${completionPercentage}%` }}
-                                />
+                            {isLocked && (
+                              <div className="flex items-center gap-1.5 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-200">
+                                <Clock className="h-3.5 w-3.5 text-orange-600" />
+                                <span className="text-orange-700">Opens: {new Date(assignment.opens_at).toLocaleDateString()}</span>
                               </div>
+                            )}
+                            <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
+                              <User className="h-3.5 w-3.5 text-blue-600" />
+                              <span className="text-gray-700">{assignment.classroom_name}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
+                              <BookOpen className="h-3.5 w-3.5 text-purple-600" />
+                              <span className="text-gray-700">{assignment.questions.length} question{assignment.questions.length !== 1 ? 's' : ''}</span>
                             </div>
                           </div>
 
-                          {/* Action Button */}
-                          <div className="flex justify-end">
-                            {assignment.student_status === 'SUBMITTED' ? (
-                              <Button 
-                                variant="outline" 
+                          <div className="mt-4 flex justify-end">
+                            {isCompleted ? (
+                              <Button
+                                variant="outline"
                                 size="sm"
                                 onClick={() => handleViewResults(assignment.id)}
-                                className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 hover:border-blue-300"
+                                className="px-4"
                               >
                                 <Award className="h-4 w-4 mr-2" />
                                 Review Answers
                               </Button>
-                            ) : new Date() < new Date(assignment.opens_at) ? (
-                              <Button 
-                                size="sm"
-                                disabled
-                                variant="outline"
-                                className="bg-gray-50 text-gray-500"
-                              >
+                            ) : isLocked ? (
+                              <Button size="sm" disabled variant="outline" className="px-4">
                                 <Clock className="h-4 w-4 mr-2" />
                                 Opens {new Date(assignment.opens_at).toLocaleDateString()}
                               </Button>
                             ) : (
-                              <Button 
-                                size="sm"
-                                onClick={() => handleStartAssignment(assignment.id)}
-                                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6"
-                              >
+                              <Button size="sm" onClick={() => handleStartAssignment(assignment.id)} className="px-5">
                                 <Play className="h-4 w-4 mr-2" />
                                 {assignment.student_status === 'NOT_STARTED' ? 'Start Assignment' : 'Continue'}
                               </Button>
                             )}
                           </div>
-                        </CardContent>
+                        </div>
                       </Card>
                     );
                   })}
