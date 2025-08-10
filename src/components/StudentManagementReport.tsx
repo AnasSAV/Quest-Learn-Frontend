@@ -200,7 +200,7 @@ const StudentManagementReport = () => {
         </div>
         <div className="flex items-center space-x-3">
           <Select value={selectedClassroom} onValueChange={setSelectedClassroom}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-48 bg-white border-gray-200">
               <SelectValue placeholder="Select classroom" />
             </SelectTrigger>
             <SelectContent>
@@ -212,11 +212,11 @@ const StudentManagementReport = () => {
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={handleExportReport}>
-            <Download className="h-4 w-4 mr-2" />
+          <Button variant="outline" className="bg-white border-gray-200" onClick={handleExportReport}>
+            <Download className="h-4 w-4 mr-2 " />
             Export
           </Button>
-          <Button variant="outline" onClick={fetchReport}>
+          <Button variant="outline" className="bg-white border-gray-200" onClick={fetchReport}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
@@ -285,13 +285,8 @@ const StudentManagementReport = () => {
       </div>
 
       {/* Students List */}
-      <Card className="bg-white shadow-sm border-0 rounded-xl">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Users className="h-5 w-5 mr-2 text-blue-500" />
-            Students Overview
-          </CardTitle>
-        </CardHeader>
+      <Card className="bg-white shadow-sm border-0 rounded-xl" style={{ paddingTop: "20px" }}>
+
         <CardContent>
           {filteredStudents.length === 0 ? (
             <div className="text-center py-12">
