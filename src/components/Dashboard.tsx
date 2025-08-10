@@ -32,7 +32,6 @@ const Dashboard = () => {
         api.getStudentPerformance()
       ]);
       
-      setAssignments(assignmentsData);
       setStudentPerformance(performanceData);
     } catch (error) {
       console.error('Error loading dashboard data:', error);

@@ -2,25 +2,50 @@ import { apiClient } from './api.client';
 
 export interface StudentAssignment {
   id: string;
-  classroom_id: string;
   title: string;
   description: string;
+  classroom_id: string;
+  classroom_name: string;
   opens_at: string;
   due_at: string;
   shuffle_questions: boolean;
   created_at: string;
-  classroom_name: string;
-  total_questions: number;
-  total_attempts: number;
-  unique_students_attempted: number;
-  completed_attempts: number;
-  average_score: number;
   is_active: boolean;
+  attempt_id: string | null;
   student_status: 'NOT_STARTED' | 'IN_PROGRESS' | 'SUBMITTED';
-  student_score?: number;
+  student_score: number | null;
+  max_possible_score: number;
+  percentage: number | null;
+  started_at: string | null;
+  submitted_at: string | null;
+  questions: StudentAssignmentQuestion[];
+  // Legacy fields for backward compatibility
+  total_questions?: number;
+  total_attempts?: number;
+  unique_students_attempted?: number;
+  completed_attempts?: number;
+  average_score?: number;
   student_submitted_at?: string;
   student_started_at?: string;
-  is_submitted_by_student: boolean;
+  is_submitted_by_student?: boolean;
+}
+
+export interface StudentAssignmentQuestion {
+  id: string;
+  prompt_text: string;
+  image_key: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  points: number;
+  order_index: number;
+  // These fields are only present for SUBMITTED assignments
+  correct_option?: 'A' | 'B' | 'C' | 'D';
+  chosen_option?: 'A' | 'B' | 'C' | 'D';
+  is_correct?: boolean;
+  points_earned?: number;
+  time_taken_seconds?: number;
 }
 
 export interface AttemptQuestion {
@@ -116,6 +141,12 @@ export const studentApi = {
 
   getClassroomAssignments: async (classroomId: string): Promise<StudentAssignment[]> => {
     const response = await apiClient.get<StudentAssignment[]>(`/assignments/classroom/${classroomId}`);
+    return response.data;
+  },
+
+  // Get all assignments for a specific student
+  getStudentAssignments: async (studentId: string): Promise<StudentAssignment[]> => {
+    const response = await apiClient.get<StudentAssignment[]>(`/assignments/student/${studentId}`);
     return response.data;
   },
 

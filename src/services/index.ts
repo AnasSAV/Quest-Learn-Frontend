@@ -29,4 +29,5 @@ export const api = {
   getUserByEmail: studentApi.getUserByEmail,
   getStudentClassrooms: studentApi.getStudentClassrooms,
   getClassroomAssignments: studentApi.getClassroomAssignments,
+  getStudentAssignments: studentApi.getStudentAssignments,
 };

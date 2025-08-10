@@ -24,7 +24,7 @@ import { studentApi, type StudentAssignment, type UserProfile, type SubmitAttemp
 
 // Dynamic import for StudentAssignmentView
 const StudentAssignmentView = lazy(() => import('../components/StudentAssignmentView'));
-const AssignmentResultView = lazy(() => import('../components/AssignmentResultView'));
+const StudentAssignmentResultView = lazy(() => import('../components/StudentAssignmentResultView'));
 
 const StudentDashboard = () => {
   const [userEmail, setUserEmail] = useState('');
@@ -82,15 +82,8 @@ const StudentDashboard = () => {
         role: userProfile.role
       });
 
-      // Step 2: Get student's classrooms
-      const classrooms = await studentApi.getStudentClassrooms(userProfile.id);
-      
-      // Step 3: Get assignments for each classroom and combine them
-      let allAssignments: StudentAssignment[] = [];
-      for (const classroom of classrooms) {
-        const classroomAssignments = await studentApi.getClassroomAssignments(classroom.id);
-        allAssignments = [...allAssignments, ...classroomAssignments];
-      }
+      // Step 2: Get all assignments for this student using the new API
+      const allAssignments = await studentApi.getStudentAssignments(userProfile.id);
 
       // Filter to only show active assignments
       const activeAssignments = allAssignments.filter(assignment => assignment.is_active);
@@ -98,11 +91,13 @@ const StudentDashboard = () => {
 
       // Calculate stats from the assignments
       const totalAssignments = activeAssignments.length;
-      const completedAssignments = activeAssignments.filter(a => a.is_submitted_by_student).length;
-      const averageScore = activeAssignments
-        .filter(a => a.student_score !== undefined)
-        .reduce((acc, a) => acc + (a.student_score || 0), 0) / 
-        Math.max(1, activeAssignments.filter(a => a.student_score !== undefined).length);
+      const completedAssignments = activeAssignments.filter(a => a.student_status === 'SUBMITTED').length;
+      
+      // Calculate average score from completed assignments
+      const completedWithScores = activeAssignments.filter(a => a.percentage !== null);
+      const averageScore = completedWithScores.length > 0 
+        ? completedWithScores.reduce((acc, a) => acc + (a.percentage || 0), 0) / completedWithScores.length
+        : 0;
 
       setStats({
         totalAssignments,
@@ -137,35 +132,29 @@ const StudentDashboard = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'SUBMITTED': return 'bg-green-500';
-      case 'IN_PROGRESS': return 'bg-yellow-500';
-      case 'NOT_STARTED': return 'bg-gray-400';
-      default: return 'bg-gray-400';
-    }
+  const getStatusColor = (assignment: StudentAssignment) => {
+    if (assignment.student_status === 'SUBMITTED') return 'bg-green-500';
+    if (assignment.student_status === 'IN_PROGRESS') return 'bg-yellow-500';
+    if (new Date() < new Date(assignment.opens_at)) return 'bg-blue-500';
+    return 'bg-gray-400';
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'SUBMITTED': return <CheckCircle className="h-4 w-4" />;
-      case 'IN_PROGRESS': return <Clock className="h-4 w-4" />;
-      case 'NOT_STARTED': return <BookOpen className="h-4 w-4" />;
-      default: return <BookOpen className="h-4 w-4" />;
-    }
+  const getStatusIcon = (assignment: StudentAssignment) => {
+    if (assignment.student_status === 'SUBMITTED') return <CheckCircle className="h-4 w-4" />;
+    if (assignment.student_status === 'IN_PROGRESS') return <Clock className="h-4 w-4" />;
+    if (new Date() < new Date(assignment.opens_at)) return <Clock className="h-4 w-4" />;
+    return <BookOpen className="h-4 w-4" />;
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'SUBMITTED': return 'Completed';
-      case 'IN_PROGRESS': return 'In Progress';
-      case 'NOT_STARTED': return 'Not Started';
-      default: return 'Not Started';
-    }
+  const getStatusText = (assignment: StudentAssignment) => {
+    if (assignment.student_status === 'SUBMITTED') return 'Completed';
+    if (assignment.student_status === 'IN_PROGRESS') return 'In Progress';
+    if (new Date() < new Date(assignment.opens_at)) return 'Not Yet Open';
+    return 'Not Started';
   };
 
   const getProgressPercentage = (assignment: StudentAssignment) => {
-    if (assignment.is_submitted_by_student) return 100;
+    if (assignment.student_status === 'SUBMITTED') return 100;
     if (assignment.student_status === 'IN_PROGRESS') return 50;
     return 0;
   };
@@ -333,23 +322,29 @@ const StudentDashboard = () => {
                                 <Calendar className="h-4 w-4" />
                                 <span>Due: {new Date(assignment.due_at).toLocaleDateString()}</span>
                               </div>
+                              {new Date() < new Date(assignment.opens_at) && (
+                                <div className="flex items-center space-x-1">
+                                  <Clock className="h-4 w-4" />
+                                  <span>Opens: {new Date(assignment.opens_at).toLocaleDateString()}</span>
+                                </div>
+                              )}
                               <span>Class: {assignment.classroom_name}</span>
-                              <span>{assignment.total_questions} question{assignment.total_questions !== 1 ? 's' : ''}</span>
+                              <span>{assignment.questions.length} question{assignment.questions.length !== 1 ? 's' : ''}</span>
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Badge 
                               variant="secondary"
-                              className={`${getStatusColor(assignment.student_status)} text-white`}
+                              className={`${getStatusColor(assignment)} text-white`}
                             >
                               <span className="flex items-center space-x-1">
-                                {getStatusIcon(assignment.student_status)}
-                                <span>{getStatusText(assignment.student_status)}</span>
+                                {getStatusIcon(assignment)}
+                                <span>{getStatusText(assignment)}</span>
                               </span>
                             </Badge>
-                            {assignment.student_score !== undefined && (
+                            {assignment.percentage !== null && (
                               <Badge variant="outline">
-                                Score: {Math.round(assignment.student_score * 100)}%
+                                Score: {Math.round(assignment.percentage)}%
                               </Badge>
                             )}
                           </div>
@@ -376,6 +371,14 @@ const StudentDashboard = () => {
                               onClick={() => handleViewResults(assignment.id)}
                             >
                               Review Answers
+                            </Button>
+                          ) : new Date() < new Date(assignment.opens_at) ? (
+                            <Button 
+                              size="sm"
+                              disabled
+                            >
+                              <Clock className="h-4 w-4 mr-2" />
+                              Opens {new Date(assignment.opens_at).toLocaleDateString()}
                             </Button>
                           ) : (
                             <Button 
@@ -456,10 +459,9 @@ const StudentDashboard = () => {
             </DialogHeader>
             <div className="overflow-y-auto max-h-[calc(90vh-8rem)]">
               <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
-                {selectedAssignmentForResult && studentProfile && (
-                  <AssignmentResultView
-                    assignmentId={selectedAssignmentForResult}
-                    studentId={studentProfile.id}
+                {selectedAssignmentForResult && (
+                  <StudentAssignmentResultView
+                    assignment={assignments.find(a => a.id === selectedAssignmentForResult)!}
                     onBack={handleResultsClose}
                   />
                 )}
