@@ -53,6 +53,71 @@ export interface StudentPerformance {
   accuracy: number;
 }
 
+// Comprehensive Student Report Types
+export interface StudentInfo {
+  student_id: string;
+  student_name: string;
+  student_email: string;
+  created_at: string;
+}
+
+export interface ClassroomEnrollment {
+  classroom_id: string;
+  classroom_name: string;
+  classroom_code: string;
+  joined_at: string;
+}
+
+export interface StudentStatistics {
+  total_assignments: number;
+  attempted_assignments: number;
+  completed_assignments: number;
+  total_points_earned: number;
+  total_possible_points: number;
+  overall_percentage: number;
+}
+
+export interface QuestionDetail {
+  question_id: string;
+  question_text: string;
+  image_key: string;
+  order_index: number;
+  points: number;
+  status: string;
+}
+
+export interface AssignmentResult {
+  assignment_id: string;
+  assignment_title: string;
+  assignment_description: string;
+  classroom_name: string;
+  created_at: string;
+  opens_at: string;
+  due_at: string;
+  max_possible_score: number;
+  total_questions: number;
+  attempt_status: string;
+  student_score: number | null;
+  percentage: number | null;
+  started_at: string | null;
+  submitted_at: string | null;
+  question_details: QuestionDetail[];
+}
+
+export interface StudentReport {
+  student_info: StudentInfo;
+  classroom_enrollments: ClassroomEnrollment[];
+  statistics: StudentStatistics;
+  assignment_results: AssignmentResult[];
+}
+
+export interface ComprehensiveReport {
+  teacher_id: string;
+  teacher_name: string;
+  total_students: number;
+  students: StudentReport[];
+}
+
 export const teacherApi = {
   // Upload assignment (legacy)
   uploadAssignment: async (questionImage: File, correctAnswer: string): Promise<LegacyAssignment> => {
@@ -129,5 +194,11 @@ export const teacherApi = {
   // Delete assignment
   deleteAssignment: async (assignmentId: string): Promise<void> => {
     await apiClient.delete(`/assignments/${assignmentId}`);
+  },
+
+  // Get comprehensive student report
+  getComprehensiveStudentReport: async (): Promise<ComprehensiveReport> => {
+    const response = await apiClient.get('/teachers/students/comprehensive-report');
+    return response.data;
   },
 };

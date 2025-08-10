@@ -46,6 +46,7 @@ import TeacherUploadForm from '@/components/TeacherUploadForm';
 import ClassroomManager from '@/components/ClassroomManager';
 import CreateAssignmentForm from '@/components/CreateAssignmentForm';
 import QuestionManager from '@/components/QuestionManager';
+import StudentManagementReport from '@/components/StudentManagementReport';
 import { authApi } from '@/services/auth.api';
 import { teacherApi, type Assignment } from '@/services/teacher.api';
 
@@ -598,20 +599,7 @@ const TeacherDashboard = () => {
           </TabsContent>
 
           <TabsContent value="students">
-            <Card>
-              <CardHeader>
-                <CardTitle>Student Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Student Management Coming Soon</h3>
-                  <p className="text-muted-foreground">
-                    Student management and class organization features will be available here.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <StudentManagementReport />
           </TabsContent>
         </Tabs>
       </div>
