@@ -135,6 +135,11 @@ export const studentApi = {
     return response.data;
   },
 
+  joinClassroom: async (code: string): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>('/students/join', { code });
+    return response.data;
+  },
+
   getStudentClassrooms: async (studentId: string): Promise<StudentClassroom[]> => {
     const response = await apiClient.get<StudentClassroom[]>(`/students/${studentId}/classrooms`);
     return response.data;

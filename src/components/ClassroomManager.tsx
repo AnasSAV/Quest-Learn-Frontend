@@ -274,6 +274,11 @@ const ClassroomManager = ({ onClassroomSelect, selectedClassroomId }: ClassroomM
                     <div>
                       <h4 className="font-semibold text-gray-900 text-base">{classroom.name}</h4>
                       <div className="flex items-center space-x-3 mt-0.5">
+                        {classroom.code && (
+                          <div className="text-xs text-muted-foreground bg-gray-100 px-2 py-1 rounded-md font-mono">
+                            Code: {classroom.code}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

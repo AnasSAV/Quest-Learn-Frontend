@@ -6,7 +6,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   BookOpen, 
   CheckCircle, 
@@ -23,10 +26,14 @@ import {
   TrendingUp,
   Zap,
   Brain,
-  GraduationCap
+  GraduationCap,
+  Plus,
+  Users,
+  Filter
 } from 'lucide-react';
 import { authApi } from '@/services/auth.api';
-import { studentApi, type StudentAssignment, type UserProfile, type SubmitAttemptResponse } from '@/services/student.api';
+import { studentApi, type StudentAssignment, type UserProfile, type SubmitAttemptResponse, type StudentClassroom } from '@/services/student.api';
+import { toast } from '@/components/ui/sonner';
 
 // Dynamic import for StudentAssignmentView
 const StudentAssignmentView = lazy(() => import('../components/StudentAssignmentView'));
@@ -36,6 +43,9 @@ const StudentDashboard = () => {
   const [userName, setUserName] = useState('');
   const [studentProfile, setStudentProfile] = useState<UserProfile | null>(null);
   const [assignments, setAssignments] = useState<StudentAssignment[]>([]);
+  const [filteredAssignments, setFilteredAssignments] = useState<StudentAssignment[]>([]);
+  const [studentClassrooms, setStudentClassrooms] = useState<StudentClassroom[]>([]);
+  const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalAssignments: 0,
     completedAssignments: 0,
@@ -48,6 +58,9 @@ const StudentDashboard = () => {
   const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
   const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
   const [selectedAssignmentForResult, setSelectedAssignmentForResult] = useState<string | null>(null);
+  const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
+  const [joinClassroomCode, setJoinClassroomCode] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -66,6 +79,16 @@ const StudentDashboard = () => {
     // Fetch student data
     fetchStudentData();
   }, [navigate]);
+
+  // Filter assignments when classroom selection changes
+  useEffect(() => {
+    if (selectedClassroomId === null) {
+      setFilteredAssignments(assignments);
+    } else {
+      const filtered = assignments.filter(assignment => assignment.classroom_id === selectedClassroomId);
+      setFilteredAssignments(filtered);
+    }
+  }, [assignments, selectedClassroomId]);
 
   const fetchStudentData = async () => {
     try {
@@ -89,7 +112,11 @@ const StudentDashboard = () => {
         role: userProfile.role
       });
 
-      // Step 2: Get all assignments for this student using the new API
+      // Step 2: Get student classrooms
+      const classrooms = await studentApi.getStudentClassrooms(userProfile.id);
+      setStudentClassrooms(classrooms);
+
+      // Step 3: Get all assignments for this student using the new API
       const allAssignments = await studentApi.getStudentAssignments(userProfile.id);
 
       // Filter to only show active assignments
@@ -118,6 +145,7 @@ const StudentDashboard = () => {
       setError('Failed to load student data');
       
       setAssignments([]);
+      setStudentClassrooms([]);
       setStats({
         totalAssignments: 0,
         completedAssignments: 0,
@@ -135,6 +163,32 @@ const StudentDashboard = () => {
     } catch (error) {
       console.error('Logout error:', error);
     }
+  };
+
+  const handleJoinClassroom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!joinClassroomCode.trim() || !studentProfile?.id) return;
+
+    try {
+      setIsJoining(true);
+      await studentApi.joinClassroom(joinClassroomCode.trim());
+      
+      // Refresh student data to include new classroom and assignments
+      await fetchStudentData();
+      
+      setJoinClassroomCode('');
+      setIsJoinDialogOpen(false);
+      toast.success('Joined classroom successfully!');
+    } catch (err: any) {
+      console.error('Error joining classroom:', err);
+      toast.error(err.response?.data?.message || 'Failed to join classroom');
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  const handleClassroomFilter = (classroomId: string | null) => {
+    setSelectedClassroomId(classroomId);
   };
 
   const getStatusColor = (assignment: StudentAssignment) => {
@@ -237,10 +291,12 @@ const StudentDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-blue-100 text-sm font-medium">Total Assignments</p>
-                  <p className="text-3xl font-bold">{stats.totalAssignments}</p>
+                  <p className="text-3xl font-bold">{filteredAssignments.length}</p>
                   <div className="flex items-center mt-2">
                     <BookOpen className="h-4 w-4 mr-1" />
-                    <span className="text-sm text-blue-100">Available to work on</span>
+                    <span className="text-sm text-blue-100">
+                      {selectedClassroomId ? 'In this classroom' : 'Available to work on'}
+                    </span>
                   </div>
                 </div>
                 <BookOpen className="h-12 w-12 text-blue-200" />
@@ -253,11 +309,11 @@ const StudentDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-green-100 text-sm font-medium">Completed</p>
-                  <p className="text-3xl font-bold">{stats.completedAssignments}</p>
+                  <p className="text-3xl font-bold">{filteredAssignments.filter(a => a.student_status === 'SUBMITTED').length}</p>
                   <div className="flex items-center mt-2">
                     <CheckCircle className="h-4 w-4 mr-1" />
                     <span className="text-sm text-green-100">
-                      {stats.totalAssignments > 0 ? `${Math.round((stats.completedAssignments / stats.totalAssignments) * 100)}% complete` : 'Great start!'}
+                      {filteredAssignments.length > 0 ? `${Math.round((filteredAssignments.filter(a => a.student_status === 'SUBMITTED').length / filteredAssignments.length) * 100)}% complete` : 'Great start!'}
                     </span>
                   </div>
                 </div>
@@ -271,14 +327,26 @@ const StudentDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-100 text-sm font-medium">Average Score</p>
-                  <p className="text-3xl font-bold">{stats.averageScore}%</p>
+                  <p className="text-3xl font-bold">{(() => {
+                    const completedWithScores = filteredAssignments.filter(a => a.percentage !== null);
+                    const avgScore = completedWithScores.length > 0 
+                      ? completedWithScores.reduce((acc, a) => acc + (a.percentage || 0), 0) / completedWithScores.length
+                      : 0;
+                    return Math.round(avgScore * 100) / 100;
+                  })()}%</p>
                   <div className="flex items-center mt-2">
                     <Star className="h-4 w-4 mr-1" />
                     <span className="text-sm text-purple-100">
-                      {stats.averageScore >= 90 ? 'Outstanding!' : 
-                       stats.averageScore >= 80 ? 'Excellent!' : 
-                       stats.averageScore >= 70 ? 'Good work!' : 
-                       stats.averageScore > 0 ? 'Keep improving!' : 'Start your journey!'}
+                      {(() => {
+                        const completedWithScores = filteredAssignments.filter(a => a.percentage !== null);
+                        const avgScore = completedWithScores.length > 0 
+                          ? completedWithScores.reduce((acc, a) => acc + (a.percentage || 0), 0) / completedWithScores.length
+                          : 0;
+                        return avgScore >= 90 ? 'Outstanding!' : 
+                               avgScore >= 80 ? 'Excellent!' : 
+                               avgScore >= 70 ? 'Good work!' : 
+                               avgScore > 0 ? 'Keep improving!' : 'Start your journey!';
+                      })()}
                     </span>
                   </div>
                 </div>
@@ -330,17 +398,110 @@ const StudentDashboard = () => {
                   <h2 className="text-2xl font-bold text-gray-900">My Assignments</h2>
                   <p className="text-gray-600 mt-1">Keep track of your homework and assignments</p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={fetchStudentData}
-                  disabled={isLoading}
-                  className="hover:bg-blue-50 hover:border-blue-200"
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
+                <div className="flex items-center space-x-3">
+                  <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Join Classroom
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center space-x-2">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <Users className="h-4 w-4 text-green-600" />
+                          </div>
+                          <span>Join Classroom</span>
+                        </DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={handleJoinClassroom} className="space-y-6">
+                        <div className="space-y-3">
+                          <Label htmlFor="classroomCode" className="text-sm font-medium">
+                            Classroom Code
+                          </Label>
+                          <Input
+                            id="classroomCode"
+                            value={joinClassroomCode}
+                            onChange={(e) => setJoinClassroomCode(e.target.value)}
+                            placeholder="Enter classroom code"
+                            className="h-11 transition-all duration-200 focus:ring-2 focus:ring-green-500/20 font-mono"
+                            required
+                          />
+                          <p className="text-xs text-gray-500">
+                            Ask your teacher for the classroom code
+                          </p>
+                        </div>
+                        <div className="flex justify-end space-x-3 pt-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsJoinDialogOpen(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            type="submit" 
+                            disabled={isJoining}
+                            className="bg-green-600 hover:bg-green-700 min-w-[100px]"
+                          >
+                            {isJoining ? (
+                              <div className="flex items-center space-x-2">
+                                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <span>Joining...</span>
+                              </div>
+                            ) : (
+                              'Join'
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchStudentData}
+                    disabled={isLoading}
+                    className="hover:bg-blue-50 hover:border-blue-200"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
               </div>
+
+              {/* Classroom Filter */}
+              {studentClassrooms.length > 0 && (
+                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Filter className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <h3 className="font-medium text-gray-900">Filter by Classroom</h3>
+                          <p className="text-sm text-gray-600">Show assignments from a specific classroom</p>
+                        </div>
+                      </div>
+                      <div className="w-64">
+                        <Select value={selectedClassroomId || 'all'} onValueChange={(value) => handleClassroomFilter(value === 'all' ? null : value)}>
+                          <SelectTrigger className="bg-white">
+                            <SelectValue placeholder="All Classrooms" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Classrooms</SelectItem>
+                            {studentClassrooms.map((classroom) => (
+                              <SelectItem key={classroom.id} value={classroom.id}>
+                                {classroom.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {error && (
                 <Alert variant="destructive" className="border-red-200 bg-red-50">
@@ -353,19 +514,35 @@ const StudentDashboard = () => {
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
                   <p className="text-gray-600">Loading assignments...</p>
                 </div>
-              ) : assignments.length === 0 ? (
+              ) : filteredAssignments.length === 0 ? (
                 <div className="text-center py-16">
                   <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
                     <BookOpen className="h-10 w-10 text-blue-500" />
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">No Assignments Yet</h3>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                    {selectedClassroomId ? 'No Assignments in This Classroom' : 'No Assignments Yet'}
+                  </h3>
                   <p className="text-gray-600 max-w-md mx-auto">
-                    Your teacher hasn't assigned any homework yet. Check back later or contact your teacher if you believe this is an error.
+                    {selectedClassroomId 
+                      ? 'This classroom doesn\'t have any assignments yet. Check back later or try selecting a different classroom.'
+                      : studentClassrooms.length === 0 
+                        ? 'You haven\'t joined any classrooms yet. Join a classroom to see assignments.'
+                        : 'Your teacher hasn\'t assigned any homework yet. Check back later or contact your teacher if you believe this is an error.'
+                    }
                   </p>
+                  {studentClassrooms.length === 0 && (
+                    <Button 
+                      onClick={() => setIsJoinDialogOpen(true)}
+                      className="mt-4 bg-green-600 hover:bg-green-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Join Your First Classroom
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="grid gap-6">
-                  {assignments.map((assignment) => {
+                  {filteredAssignments.map((assignment) => {
                     const completionPercentage = getProgressPercentage(assignment);
                     const isCompleted = assignment.student_status === 'SUBMITTED';
                     const isLocked = new Date() < new Date(assignment.opens_at);

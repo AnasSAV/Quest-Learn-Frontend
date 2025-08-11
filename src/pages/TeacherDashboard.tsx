@@ -546,7 +546,7 @@ const TeacherDashboard = () => {
                                 <div className="flex items-center gap-1.5">
                                   <Button  onClick={() => setManagingQuestionsForAssignment(assignment)} variant="outline" size="sm" className="h-8 text-xs hover:border-foreground/30">
                                     <Eye className="h-3.5 w-3.5 mr-1" />
-                                    View
+                                    View or Add Questions
                                   </Button>
                                   <Button
                                     variant="outline"
