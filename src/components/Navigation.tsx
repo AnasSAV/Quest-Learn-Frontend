@@ -11,7 +11,7 @@ const Navigation = () => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <GraduationCap className="h-8 w-8 text-primary mr-2" />
-            <h1 className="text-xl font-bold text-foreground">MathAssign</h1>
+            <h1 className="text-xl font-bold text-foreground">QuestLearn</h1>
           </div>
           
           <div className="flex items-center space-x-4">

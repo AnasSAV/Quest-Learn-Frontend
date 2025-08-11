@@ -37,6 +37,7 @@ export interface LegacyAssignment {
 export interface Classroom {
   id: string;
   name: string;
+  code: string;
   created_at?: string;
   teacher_id?: string;
 }

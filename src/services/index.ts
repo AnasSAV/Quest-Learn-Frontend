@@ -1,7 +1,9 @@
 // Export all APIs from a single entry point
 export * from './auth.api';
 export * from './teacher.api';
-export * from './student.api';
+export { 
+  studentApi,
+} from './student.api';
 export * from './api.client';
 
 // Legacy api object for backward compatibility
@@ -26,7 +28,7 @@ export const api = {
   getAllClassrooms: teacherApi.getAllClassrooms,
   
   // Student methods
-  getUserByEmail: studentApi.getUserByEmail,
+  getUserByUsername: studentApi.getUserByUsername,
   getStudentClassrooms: studentApi.getStudentClassrooms,
   getClassroomAssignments: studentApi.getClassroomAssignments,
   getStudentAssignments: studentApi.getStudentAssignments,

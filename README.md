@@ -65,8 +65,8 @@ Math Buddy is a comprehensive educational platform that connects teachers and st
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/AnasSAV/Math-Buddy-Frontend.git
-   cd Math-Buddy-Frontend
+   git clone https://github.com/AnasSAV/Quest-Learn-Frontend.git
+   cd Quest-Learn-Frontend
    ```
 
 2. **Install dependencies**
@@ -140,7 +140,7 @@ npm run type-check   # TypeScript type checking
 
 This frontend application connects to the Math Buddy backend API. Make sure to set up the backend repository:
 
-**Backend Repository**: [Math-Buddy-Backend](https://github.com/AnasSAV/Math-Buddy-Backend)
+**Backend Repository**: [Quest-Learn-Backend](https://github.com/AnasSAV/Quest-Learn-Backend)
 
 ### Environment Configuration
 
@@ -228,6 +228,6 @@ For support, email [anashussaindeen@gmail.com]
 
 ## 🔗 Related Repositories
 
-- **Backend API**: [Math-Buddy-Backend](https://github.com/AnasSAV/Math-Buddy-Backend)
+- **Backend API**: [Quest-Learn-Backend](https://github.com/AnasSAV/Quest-Learn-Backend)
 ---
 
