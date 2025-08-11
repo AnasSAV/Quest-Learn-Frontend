@@ -33,7 +33,7 @@ const StudentAssignmentView = lazy(() => import('../components/StudentAssignment
 const StudentAssignmentResultView = lazy(() => import('../components/StudentAssignmentResultView'));
 
 const StudentDashboard = () => {
-  const [userEmail, setUserEmail] = useState('');
+  const [userName, setUserName] = useState('');
   const [studentProfile, setStudentProfile] = useState<UserProfile | null>(null);
   const [assignments, setAssignments] = useState<StudentAssignment[]>([]);
   const [stats, setStats] = useState({
@@ -59,9 +59,9 @@ const StudentDashboard = () => {
       return;
     }
 
-    // Get the email from localStorage (set during login)
-    const email = localStorage.getItem('userEmail');
-    setUserEmail(email || '');
+    // Get the username from localStorage (set during login)
+    const username = localStorage.getItem('userName');
+    setUserName(username || '');
 
     // Fetch student data
     fetchStudentData();
@@ -72,17 +72,18 @@ const StudentDashboard = () => {
       setIsLoading(true);
       setError('');
 
-      // Get email from localStorage
-      const email = localStorage.getItem('userEmail');
-      if (!email) {
+      // Get username from localStorage
+      const username = localStorage.getItem('userName');
+      if (!username) {
         navigate('/login');
         return;
       }
 
-      // Step 1: Get user profile by email to get student_id
-      const userProfile = await studentApi.getUserByEmail(email);
+      // Step 1: Get user profile by username to get student_id
+      const userProfile = await studentApi.getUserByUsername(username);
       setStudentProfile({
         id: userProfile.id,
+        user_name: userProfile.user_name,
         email: userProfile.email,
         full_name: userProfile.full_name,
         role: userProfile.role
@@ -211,12 +212,12 @@ const StudentDashboard = () => {
               <div className="flex items-center space-x-3 bg-gray-50 rounded-xl px-4 py-2">
                 <Avatar className="w-8 h-8">
                   <AvatarFallback className="bg-blue-500 text-white text-sm">
-                    {userEmail.charAt(0).toUpperCase()}
+                    {userName.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-left">
                   <p className="text-sm font-medium text-gray-900">{studentProfile?.full_name || 'Student'}</p>
-                  <p className="text-xs text-gray-500">{userEmail}</p>
+                  <p className="text-xs text-gray-500">Student</p>
                 </div>
               </div>
               <Button variant="outline" size="sm" onClick={handleLogout} className="hover:bg-red-50 hover:text-red-600 hover:border-red-200">

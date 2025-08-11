@@ -123,14 +123,15 @@ export interface StudentClassroom {
 
 export interface UserProfile {
   id: string;
+  user_name: string;
   email: string;
   full_name: string;
   role: string;
 }
 
 export const studentApi = {
-  getUserByEmail: async (email: string): Promise<UserProfile> => {
-    const response = await apiClient.get<UserProfile>(`/users/by-email?email=${email}`);
+  getUserByUsername: async (username: string): Promise<UserProfile> => {
+    const response = await apiClient.get<UserProfile>(`/users/by-username?user_name=${username}`);
     return response.data;
   },
 

@@ -53,7 +53,7 @@ import { toast } from '@/components/ui/sonner';
 import { teacherApi, type Assignment } from '@/services/teacher.api';
 
 const TeacherDashboard = () => {
-  const [userEmail, setUserEmail] = useState('');
+  const [userName, setUserName] = useState('');
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [filteredAssignments, setFilteredAssignments] = useState<Assignment[]>([]);
   const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
@@ -73,9 +73,9 @@ const TeacherDashboard = () => {
       return;
     }
 
-    // Get the email from localStorage (set during login)
-    const email = localStorage.getItem('userEmail');
-    setUserEmail(email || '');
+    // Get the username from localStorage (set during login)
+    const username = localStorage.getItem('userName');
+    setUserName(username || '');
 
     // Fetch assignments
     fetchAssignments();
@@ -201,12 +201,12 @@ const TeacherDashboard = () => {
               <div className="flex items-center space-x-3 bg-gray-50 rounded-xl px-4 py-2">
                 <Avatar className="w-8 h-8">
                   <AvatarFallback className="bg-blue-500 text-white text-sm">
-                    {userEmail.charAt(0).toUpperCase()}
+                    {userName.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-left">
-                  <p className="text-sm font-medium text-gray-900">Teacher</p>
-                  <p className="text-xs text-gray-500">{userEmail}</p>
+                  <p className="text-sm font-medium text-gray-900">{userName}</p>
+                  <p className="text-xs text-gray-500">Teacher</p>
                 </div>
               </div>
               <Button variant="outline" size="sm" onClick={handleLogout} className="hover:bg-red-50 hover:text-red-600 hover:border-red-200">

@@ -15,7 +15,7 @@ const Home = () => {
             </div>
           </div>
           <h1 className="text-4xl font-bold text-foreground mb-4">
-            Welcome to MathAssign
+            Welcome to QuestLearn
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             A comprehensive math homework assignment system designed for teachers and students

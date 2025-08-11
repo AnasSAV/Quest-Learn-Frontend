@@ -10,7 +10,7 @@ import { authApi } from '@/services/auth.api';
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    email: '',
+    user_name: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -34,7 +34,7 @@ const Login = () => {
 
     try {
       // Check if this is a demo login (when backend is not available)
-      const isDemoLogin = formData.email.includes('@demo.com');
+      const isDemoLogin = formData.user_name.includes('demo');
       
       if (isDemoLogin) {
         // Demo login simulation
@@ -42,21 +42,21 @@ const Login = () => {
         
         // Validate demo credentials
         const validCredentials = 
-          (formData.email === 'teacher@demo.com' && formData.password === 'password123') ||
-          (formData.email === 'student@demo.com' && formData.password === 'password123');
+          (formData.user_name === 'teacher_demo' && formData.password === 'password123') ||
+          (formData.user_name === 'student_demo' && formData.password === 'password123');
 
         if (!validCredentials) {
           throw new Error('Invalid demo credentials');
         }
 
         // Mock demo data
-        const role = formData.email === 'teacher@demo.com' ? 'TEACHER' : 'STUDENT';
+        const role = formData.user_name === 'teacher_demo' ? 'TEACHER' : 'STUDENT';
         const userType = role === 'TEACHER' ? 'teacher' : 'student';
         
         localStorage.setItem('userId', 'demo-user-id');
         localStorage.setItem('userRole', role);
         localStorage.setItem('userType', userType);
-        localStorage.setItem('userEmail', formData.email);
+        localStorage.setItem('userName', formData.user_name);
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('token', 'demo-token');
 
@@ -69,7 +69,7 @@ const Login = () => {
       } else {
         // Use actual API for authentication
         const response = await authApi.login({
-          email: formData.email,
+          user_name: formData.user_name,
           password: formData.password
         });
         
@@ -87,7 +87,7 @@ const Login = () => {
         // Store user information
         localStorage.setItem('userId', decodedToken.sub);
         localStorage.setItem('userRole', decodedToken.role);
-        localStorage.setItem('userEmail', formData.email);
+        localStorage.setItem('userName', formData.user_name);
         localStorage.setItem('isAuthenticated', 'true');
         
         // Map backend role to frontend userType for compatibility
@@ -108,7 +108,7 @@ const Login = () => {
       let errorMessage = 'Login failed. Please check your credentials and try again.';
       
       if (err.response?.status === 401) {
-        errorMessage = 'Invalid email or password.';
+        errorMessage = 'Invalid username or password.';
       } else if (err.response?.status === 500) {
         errorMessage = 'Server error. Please try again later.';
       } else if (err.code === 'NETWORK_ERROR') {
@@ -133,7 +133,7 @@ const Login = () => {
               <GraduationCap className="h-12 w-12 text-primary" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Welcome to MathAssign</h1>
+          <h1 className="text-2xl font-bold text-foreground">Welcome to QuestLearn</h1>
           <p className="text-muted-foreground mt-2">Sign in to your account</p>
         </div>
 
@@ -143,15 +143,15 @@ const Login = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email Input */}
+              {/* Username Input */}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="user_name">Username</Label>
                 <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={formData.email}
+                  id="user_name"
+                  name="user_name"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={formData.user_name}
                   onChange={handleInputChange}
                   required
                 />
@@ -208,7 +208,7 @@ const Login = () => {
               <p className="text-sm font-medium text-foreground mb-2">Authentication Note:</p>
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>The system will automatically detect if you're a teacher or student based on your account.</p>
-                <p>Use your registered email and password to login.</p>
+                <p>Use your registered username and password to login.</p>
               </div>
             </div>
           </CardContent>
