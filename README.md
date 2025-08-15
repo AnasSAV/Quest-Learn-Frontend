@@ -1,8 +1,8 @@
-# 🧮 Math Buddy Frontend
+# 🧮 Quest Learn Frontend
 
 ## Overview
 
-Math Buddy is a comprehensive educational platform that connects teachers and students through interactive math assignments, real-time progress tracking, and detailed analytics. The platform features a modern, responsive design with role-based dashboards for both educators and learners.
+Quest Learn is a comprehensive educational platform that connects teachers and students through interactive math assignments, real-time progress tracking, and detailed analytics. The platform features a modern, responsive design with role-based dashboards for both educators and learners.
 
 ## Features
 
@@ -81,7 +81,7 @@ Math Buddy is a comprehensive educational platform that connects teachers and st
    Edit `.env` with your configuration:
    ```env
    VITE_API_BASE_URL=http://localhost:8000
-   VITE_APP_NAME=Math Buddy
+   VITE_APP_NAME=Quest Learn
    ```
 
 4. **Start development server**
@@ -138,7 +138,7 @@ npm run type-check   # TypeScript type checking
 
 ## 🌐 API Integration
 
-This frontend application connects to the Math Buddy backend API. Make sure to set up the backend repository:
+This frontend application connects to the Quest Learn backend API. Make sure to set up the backend repository:
 
 **Backend Repository**: [Quest-Learn-Backend](https://github.com/AnasSAV/Quest-Learn-Backend)
 
@@ -152,7 +152,7 @@ VITE_API_BASE_URL=http://localhost:8000
 VITE_API_TIMEOUT=10000
 
 # Application Settings
-VITE_APP_NAME=Math Buddy
+VITE_APP_NAME=Quest Learn
 VITE_APP_VERSION=1.0.0
 
 # Development Settings
