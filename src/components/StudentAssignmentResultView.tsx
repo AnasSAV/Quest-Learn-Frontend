@@ -74,7 +74,7 @@ const StudentAssignmentResultView = ({ assignment, onBack }: StudentAssignmentRe
   const totalTimeTaken = assignment.questions.reduce((acc, q) => acc + (q.time_taken_seconds || 0), 0);
 
   return (
-    <div className="space-y-6 p-4 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+    <div className="space-y-6">
       {/* Header with improved styling */}
       <div className="flex items-center justify-between bg-white rounded-xl p-4 shadow-sm border">
         <div className="flex items-center space-x-4">
@@ -222,7 +222,7 @@ const StudentAssignmentResultView = ({ assignment, onBack }: StudentAssignmentRe
             Questions & Answers Review
           </CardTitle>
         </CardHeader>
-        <CardContent className="max-h-[80vh] overflow-y-auto pr-3">
+        <CardContent>
           <div className="space-y-6">
             {assignment.questions
               .sort((a, b) => a.order_index - b.order_index)

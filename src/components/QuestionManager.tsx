@@ -419,7 +419,7 @@ const QuestionManager = ({ assignment, onClose }: QuestionManagerProps) => {
                             id="time"
                             type="number"
                             min="1"
-                            max="300"
+                            max="3600"
                             value={formData.per_question_seconds}
                             onChange={(e) => handleInputChange('per_question_seconds', parseInt(e.target.value))}
                             className="text-center rounded-md bg-white border-gray-200"
@@ -434,7 +434,7 @@ const QuestionManager = ({ assignment, onClose }: QuestionManagerProps) => {
                             id="points"
                             type="number"
                             min="1"
-                            max="10"
+                            max="100"
                             value={formData.points}
                             onChange={(e) => handleInputChange('points', parseInt(e.target.value))}
                             className="text-center rounded-md bg-white border-gray-200"

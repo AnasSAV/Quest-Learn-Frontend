@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,12 +32,8 @@ import {
   Filter
 } from 'lucide-react';
 import { authApi } from '@/services/auth.api';
-import { studentApi, type StudentAssignment, type UserProfile, type SubmitAttemptResponse, type StudentClassroom } from '@/services/student.api';
+import { studentApi, type StudentAssignment, type UserProfile, type StudentClassroom } from '@/services/student.api';
 import { toast } from '@/components/ui/sonner';
-
-// Dynamic import for StudentAssignmentView
-const StudentAssignmentView = lazy(() => import('../components/StudentAssignmentView'));
-const StudentAssignmentResultView = lazy(() => import('../components/StudentAssignmentResultView'));
 
 const StudentDashboard = () => {
   const [userName, setUserName] = useState('');
@@ -54,10 +50,6 @@ const StudentDashboard = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
-  const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
-  const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
-  const [selectedAssignmentForResult, setSelectedAssignmentForResult] = useState<string | null>(null);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   const [joinClassroomCode, setJoinClassroomCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
@@ -79,6 +71,18 @@ const StudentDashboard = () => {
     // Fetch student data
     fetchStudentData();
   }, [navigate]);
+
+  // Refresh data when returning to the dashboard (e.g., after completing an assignment)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchStudentData();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
 
   // Filter assignments when classroom selection changes
   useEffect(() => {
@@ -219,30 +223,11 @@ const StudentDashboard = () => {
   };
 
   const handleStartAssignment = (assignmentId: string) => {
-    setSelectedAssignmentId(assignmentId);
-    setIsAssignmentDialogOpen(true);
-  };
-
-  const handleAssignmentComplete = (result: SubmitAttemptResponse) => {
-    setIsAssignmentDialogOpen(false);
-    setSelectedAssignmentId(null);
-    // Refresh assignments to get updated status
-    fetchStudentData();
-  };
-
-  const handleAssignmentCancel = () => {
-    setIsAssignmentDialogOpen(false);
-    setSelectedAssignmentId(null);
+    navigate(`/student/assignment/${assignmentId}`);
   };
 
   const handleViewResults = (assignmentId: string) => {
-    setSelectedAssignmentForResult(assignmentId);
-    setIsResultDialogOpen(true);
-  };
-
-  const handleResultsClose = () => {
-    setIsResultDialogOpen(false);
-    setSelectedAssignmentForResult(null);
+    navigate(`/student/results/${assignmentId}`);
   };
 
   return (
@@ -681,58 +666,7 @@ const StudentDashboard = () => {
           </Tabs>
         </div>
 
-        {/* Enhanced Assignment Dialog */}
-        <Dialog open={isAssignmentDialogOpen} onOpenChange={setIsAssignmentDialogOpen}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden bg-white rounded-2xl border-0 shadow-2xl">
-            <DialogHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 -m-6 mb-4 border-b">
-              <DialogTitle className="text-xl font-bold text-gray-900 flex items-center">
-                <BookOpen className="h-5 w-5 mr-2 text-blue-500" />
-                Assignment
-              </DialogTitle>
-            </DialogHeader>
-            <div className="overflow-y-auto max-h-[calc(90vh-8rem)]">
-              <Suspense fallback={
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading assignment...</p>
-                </div>
-              }>
-                <StudentAssignmentView
-                  assignmentId={selectedAssignmentId || undefined}
-                  onComplete={handleAssignmentComplete}
-                  onCancel={handleAssignmentCancel}
-                />
-              </Suspense>
-            </div>
-          </DialogContent>
-        </Dialog>
 
-        {/* Enhanced Results Dialog */}
-        <Dialog open={isResultDialogOpen} onOpenChange={setIsResultDialogOpen}>
-          <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden bg-white rounded-2xl border-0 shadow-2xl">
-            <DialogHeader className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 -m-6 mb-4 border-b">
-              <DialogTitle className="text-xl font-bold text-gray-900 flex items-center">
-                <Trophy className="h-5 w-5 mr-2 text-green-500" />
-                Assignment Results
-              </DialogTitle>
-            </DialogHeader>
-            <div className="overflow-y-auto max-h-[calc(90vh-8rem)]">
-              <Suspense fallback={
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading results...</p>
-                </div>
-              }>
-                {selectedAssignmentForResult && (
-                  <StudentAssignmentResultView
-                    assignment={assignments.find(a => a.id === selectedAssignmentForResult)!}
-                    onBack={handleResultsClose}
-                  />
-                )}
-              </Suspense>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );
