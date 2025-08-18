@@ -71,8 +71,7 @@ const StudentAssignmentResultPage = () => {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Assignment Not Found</h1>
           <p className="text-gray-600 mb-6">The assignment you're looking for doesn't exist.</p>
           <Button onClick={() => navigate('/student-dashboard')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
+            <ArrowLeft className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -98,7 +97,6 @@ const StudentAssignmentResultPage = () => {
           <p className="text-gray-600 mb-6">{error || 'Assignment not found'}</p>
           <Button onClick={() => navigate('/student-dashboard')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
           </Button>
         </div>
       </div>

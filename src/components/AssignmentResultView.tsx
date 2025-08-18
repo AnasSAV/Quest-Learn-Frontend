@@ -129,8 +129,7 @@ const AssignmentResultView = ({ assignmentId, studentId, onBack }: AssignmentRes
             </div>
             {onBack && (
               <Button variant="outline" onClick={onBack}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+                <ArrowLeft className="h-4 w-4" />
               </Button>
             )}
           </div>

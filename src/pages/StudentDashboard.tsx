@@ -29,7 +29,14 @@ import {
   GraduationCap,
   Plus,
   Users,
-  Filter
+  Filter,
+  BarChart3,
+  PieChart,
+  Percent,
+  AlertTriangle,
+  Eye,
+  Timer,
+  CheckCircle2
 } from 'lucide-react';
 import { authApi } from '@/services/auth.api';
 import { studentApi, type StudentAssignment, type UserProfile, type StudentClassroom } from '@/services/student.api';
@@ -40,6 +47,7 @@ const StudentDashboard = () => {
   const [studentProfile, setStudentProfile] = useState<UserProfile | null>(null);
   const [assignments, setAssignments] = useState<StudentAssignment[]>([]);
   const [filteredAssignments, setFilteredAssignments] = useState<StudentAssignment[]>([]);
+  const [overdueAssignments, setOverdueAssignments] = useState<StudentAssignment[]>([]);
   const [studentClassrooms, setStudentClassrooms] = useState<StudentClassroom[]>([]);
   const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
   const [stats, setStats] = useState({
@@ -127,6 +135,10 @@ const StudentDashboard = () => {
       const activeAssignments = allAssignments.filter(assignment => assignment.is_active);
       setAssignments(activeAssignments);
 
+      // Step 4: Get overdue assignments
+      const overdueData = await studentApi.getOverdueAssignments(userProfile.id);
+      setOverdueAssignments(overdueData);
+
       // Calculate stats from the assignments
       const totalAssignments = activeAssignments.length;
       const completedAssignments = activeAssignments.filter(a => a.student_status === 'SUBMITTED').length;
@@ -150,6 +162,7 @@ const StudentDashboard = () => {
       
       setAssignments([]);
       setStudentClassrooms([]);
+      setOverdueAssignments([]);
       setStats({
         totalAssignments: 0,
         completedAssignments: 0,
@@ -268,94 +281,8 @@ const StudentDashboard = () => {
         </div>
       </header>
 
-      <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Enhanced Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm font-medium">Total Assignments</p>
-                  <p className="text-3xl font-bold">{filteredAssignments.length}</p>
-                  <div className="flex items-center mt-2">
-                    <BookOpen className="h-4 w-4 mr-1" />
-                    <span className="text-sm text-blue-100">
-                      {selectedClassroomId ? 'In this classroom' : 'Available to work on'}
-                    </span>
-                  </div>
-                </div>
-                <BookOpen className="h-12 w-12 text-blue-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-sm font-medium">Completed</p>
-                  <p className="text-3xl font-bold">{filteredAssignments.filter(a => a.student_status === 'SUBMITTED').length}</p>
-                  <div className="flex items-center mt-2">
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    <span className="text-sm text-green-100">
-                      {filteredAssignments.length > 0 ? `${Math.round((filteredAssignments.filter(a => a.student_status === 'SUBMITTED').length / filteredAssignments.length) * 100)}% complete` : 'Great start!'}
-                    </span>
-                  </div>
-                </div>
-                <CheckCircle className="h-12 w-12 text-green-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-sm font-medium">Average Score</p>
-                  <p className="text-3xl font-bold">{(() => {
-                    const completedWithScores = filteredAssignments.filter(a => a.percentage !== null);
-                    const avgScore = completedWithScores.length > 0 
-                      ? completedWithScores.reduce((acc, a) => acc + (a.percentage || 0), 0) / completedWithScores.length
-                      : 0;
-                    return Math.round(avgScore * 100) / 100;
-                  })()}%</p>
-                  <div className="flex items-center mt-2">
-                    <Star className="h-4 w-4 mr-1" />
-                    <span className="text-sm text-purple-100">
-                      {(() => {
-                        const completedWithScores = filteredAssignments.filter(a => a.percentage !== null);
-                        const avgScore = completedWithScores.length > 0 
-                          ? completedWithScores.reduce((acc, a) => acc + (a.percentage || 0), 0) / completedWithScores.length
-                          : 0;
-                        return avgScore >= 90 ? 'Outstanding!' : 
-                               avgScore >= 80 ? 'Excellent!' : 
-                               avgScore >= 70 ? 'Good work!' : 
-                               avgScore > 0 ? 'Keep improving!' : 'Start your journey!';
-                      })()}
-                    </span>
-                  </div>
-                </div>
-                <Trophy className="h-12 w-12 text-purple-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 text-sm font-medium">Current Streak</p>
-                  <p className="text-3xl font-bold">{stats.currentStreak} days</p>
-                  <div className="flex items-center mt-2">
-                    <Zap className="h-4 w-4 mr-1" />
-                    <span className="text-sm text-orange-100">Keep it up!</span>
-                  </div>
-                </div>
-                <Target className="h-12 w-12 text-orange-200" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 py-2">
+        
 
         {/* Enhanced Main Content */}
         <div className="bg-white rounded-2xl shadow-sm border-0 overflow-hidden">
@@ -643,25 +570,197 @@ const StudentDashboard = () => {
             </TabsContent>
 
             <TabsContent value="progress" className="p-6 space-y-6 m-0">
-              <div className="text-center py-16">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <TrendingUp className="h-10 w-10 text-blue-600" />
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Progress & Analytics</h2>
+                  <p className="text-gray-600 mt-1">Track your performance and review completed assignments</p>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">Progress Tracking Coming Soon</h3>
-                <p className="text-gray-600 max-w-md mx-auto mb-6">
-                  Detailed progress tracking and analytics will be available here to help you monitor your learning journey.
-                </p>
-                <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <Star className="h-6 w-6 text-blue-500 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-blue-700">Performance Analytics</p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <Award className="h-6 w-6 text-green-500 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-green-700">Achievement Badges</p>
-                  </div>
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchStudentData}
+                  disabled={isLoading}
+                  className="hover:bg-blue-50 hover:border-blue-200"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
               </div>
+
+              {/* Progress Overview Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-100 text-sm font-medium">Completed Assignments</p>
+                        <p className="text-3xl font-bold">{overdueAssignments.length}</p>
+                        <div className="flex items-center mt-2">
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          <span className="text-sm text-blue-100">Ready for review</span>
+                        </div>
+                      </div>
+                      <BarChart3 className="h-12 w-12 text-blue-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-purple-100 text-sm font-medium">Overall Average</p>
+                        <p className="text-3xl font-bold">{(() => {
+                          const scoresWithPercentage = overdueAssignments.filter(a => a.percentage !== null);
+                          const avgScore = scoresWithPercentage.length > 0 
+                            ? scoresWithPercentage.reduce((acc, a) => acc + (a.percentage || 0), 0) / scoresWithPercentage.length
+                            : 0;
+                          return Math.round(avgScore * 100) / 100;
+                        })()}%</p>
+                        <div className="flex items-center mt-2">
+                          <Percent className="h-4 w-4 mr-1" />
+                          <span className="text-sm text-purple-100">
+                            {(() => {
+                              const scoresWithPercentage = overdueAssignments.filter(a => a.percentage !== null);
+                              const avgScore = scoresWithPercentage.length > 0 
+                                ? scoresWithPercentage.reduce((acc, a) => acc + (a.percentage || 0), 0) / scoresWithPercentage.length
+                                : 0;
+                              return avgScore >= 90 ? 'Excellent!' : 
+                                     avgScore >= 80 ? 'Great work!' : 
+                                     avgScore >= 70 ? 'Good progress!' : 
+                                     avgScore > 0 ? 'Keep improving!' : 'No scores yet';
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+                      <PieChart className="h-12 w-12 text-purple-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-sm font-medium">Total Questions</p>
+                        <p className="text-3xl font-bold">{overdueAssignments.reduce((total, assignment) => total + assignment.questions.length, 0)}</p>
+                        <div className="flex items-center mt-2">
+                          <Target className="h-4 w-4 mr-1" />
+                          <span className="text-sm text-green-100">Questions answered</span>
+                        </div>
+                      </div>
+                      <Trophy className="h-12 w-12 text-green-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Overdue Assignments Results */}
+              {overdueAssignments.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <TrendingUp className="h-10 w-10 text-gray-500" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">No Completed Assignments Yet</h3>
+                  <p className="text-gray-600 max-w-md mx-auto">
+                    Once you complete assignments that are past their due date, you'll be able to view detailed results and analytics here.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900">Assignment Results</h3>
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                      {overdueAssignments.length} assignment{overdueAssignments.length !== 1 ? 's' : ''} available
+                    </Badge>
+                  </div>
+
+                  <div className="grid gap-6">
+                    {overdueAssignments.map((assignment) => {
+                      const correctAnswers = assignment.questions.filter(q => q.is_correct).length;
+                      const totalQuestions = assignment.questions.length;
+                      const correctPercentage = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+                      
+                      return (
+                        <Card key={assignment.id} className="overflow-hidden transition-shadow duration-200 hover:shadow-lg border-l-4 border-blue-500">
+                          <div className="p-6 bg-white">
+                            <div className="flex items-start justify-between gap-4 mb-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h4 className="text-lg font-semibold text-gray-900">{assignment.title}</h4>
+                                  <Badge className="bg-green-100 text-green-700 border-0">Completed</Badge>
+                                </div>
+                                <p className="text-sm text-gray-600 line-clamp-2">{assignment.description}</p>
+                                <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
+                                  <User className="h-3.5 w-3.5" />
+                                  <span>{assignment.classroom_name}</span>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="text-2xl font-bold text-gray-900">
+                                  {Math.round(assignment.percentage || 0)}%
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  {assignment.student_score}/{assignment.max_possible_score} points
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Performance Breakdown */}
+                            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                <div>
+                                  <div className="text-lg font-semibold text-green-600">{correctAnswers}</div>
+                                  <div className="text-xs text-gray-600">Correct</div>
+                                </div>
+                                <div>
+                                  <div className="text-lg font-semibold text-red-600">{totalQuestions - correctAnswers}</div>
+                                  <div className="text-xs text-gray-600">Incorrect</div>
+                                </div>
+                                <div>
+                                  <div className="text-lg font-semibold text-blue-600">{totalQuestions}</div>
+                                  <div className="text-xs text-gray-600">Total Questions</div>
+                                </div>
+                                <div>
+                                  <div className="text-lg font-semibold text-purple-600">
+                                    {Math.round((assignment.questions.reduce((total, q) => total + (q.time_taken_seconds || 0), 0)) / 60)}m
+                                  </div>
+                                  <div className="text-xs text-gray-600">Time Taken</div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-3 text-xs">
+                                <div className="flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-full">
+                                  <Calendar className="h-3.5 w-3.5 text-gray-600" />
+                                  <span className="text-gray-700">Submitted: {new Date(assignment.submitted_at!).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 bg-blue-100 px-3 py-1.5 rounded-full">
+                                  <Timer className="h-3.5 w-3.5 text-blue-600" />
+                                  <span className="text-blue-700">
+                                    Due: {new Date(assignment.due_at).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewResults(assignment.id)}
+                                className="px-4"
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Detailed Results
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>

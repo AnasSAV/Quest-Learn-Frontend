@@ -59,8 +59,7 @@ const StudentAssignmentResultView = ({ assignment, onBack }: StudentAssignmentRe
             <p className="text-muted-foreground mb-6">This assignment has not been submitted yet.</p>
             {onBack && (
               <Button variant="outline" onClick={onBack}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+                <ArrowLeft className="h-4 w-4" />
               </Button>
             )}
           </CardContent>
@@ -80,8 +79,7 @@ const StudentAssignmentResultView = ({ assignment, onBack }: StudentAssignmentRe
         <div className="flex items-center space-x-4">
           {onBack && (
             <Button variant="outline" size="sm" onClick={onBack} className="hover:scale-105 transition-transform">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
+              <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
           <div>

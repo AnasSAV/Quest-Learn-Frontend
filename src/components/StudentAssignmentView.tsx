@@ -257,8 +257,7 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
             {onCancel && (
               <div className="flex justify-center">
                 <Button onClick={onCancel} size="lg" className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
+                  <ArrowLeft className="h-4 w-4" />
                 </Button>
               </div>
             )}
