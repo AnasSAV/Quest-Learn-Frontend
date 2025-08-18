@@ -175,5 +175,11 @@ export const studentApi = {
   getAssignmentResult: async (assignmentId: string, studentId: string): Promise<AssignmentResult> => {
     const response = await apiClient.get<AssignmentResult>(`/assignments/${assignmentId}/student/${studentId}/result`);
     return response.data;
+  },
+
+  // Get overdue assignments for student
+  getOverdueAssignments: async (studentId: string): Promise<StudentAssignment[]> => {
+    const response = await apiClient.get<StudentAssignment[]>(`/assignments/student/${studentId}/overdue`);
+    return response.data;
   }
 };

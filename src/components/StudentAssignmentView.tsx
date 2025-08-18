@@ -48,6 +48,7 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
   const [error, setError] = useState('');
   const [isStarted, setIsStarted] = useState(false);
   const [submitResult, setSubmitResult] = useState<SubmitAttemptResponse | null>(null);
+  const [selectedOption, setSelectedOption] = useState<'A' | 'B' | 'C' | 'D' | null>(null);
 
   const currentQuestion = attemptData?.questions[currentQuestionIndex];
 
@@ -58,8 +59,6 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          // Time's up for this question, move to next
-          handleAutoNextQuestion();
           return 0;
         }
         return prev - 1;
@@ -68,6 +67,16 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
 
     return () => clearInterval(timer);
   }, [isStarted, currentQuestion, timeLeft]);
+
+  // Reset selected option when changing questions
+  useEffect(() => {
+    if (currentQuestion) {
+      const existingAnswer = answers.get(currentQuestion.id);
+      setSelectedOption(existingAnswer?.chosen_option || null);
+      setTimeLeft(currentQuestion.per_question_seconds);
+      setQuestionStartTime(Date.now());
+    }
+  }, [currentQuestionIndex, currentQuestion, answers]);
 
   const handleStartAssignment = async () => {
     if (!assignmentId) {
@@ -96,76 +105,62 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
     }
   };
 
-  const handleAnswerSelect = async (option: 'A' | 'B' | 'C' | 'D') => {
-    if (!currentQuestion || !attemptData) return;
-
-    const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
-    const answerData: AnswerRequest = {
-      question_id: currentQuestion.id,
-      chosen_option: option,
-      time_taken_seconds: timeSpent
-    };
-
-    try {
-      // Submit answer to backend
-      await studentApi.answerQuestion(attemptData.attempt_id, answerData);
-      
-      // Update local state
-      setAnswers(prev => new Map(prev.set(currentQuestion.id, answerData)));
-      
-      // Move to next question after a brief delay
-      setTimeout(() => {
-        handleNextQuestion();
-      }, 500);
-      
-    } catch (err: any) {
-      console.error('Error submitting answer:', err);
-      setError('Failed to submit answer');
-    }
+  const handleAnswerSelect = (option: 'A' | 'B' | 'C' | 'D') => {
+    setSelectedOption(option);
   };
 
-  const handleAutoNextQuestion = useCallback(() => {
+  const handleNextQuestion = async () => {
     if (!currentQuestion || !attemptData) return;
 
-    // Auto-submit empty answer if time runs out
-    const timeSpent = currentQuestion.per_question_seconds;
-    const answerData: AnswerRequest = {
-      question_id: currentQuestion.id,
-      chosen_option: 'A', // Default answer when time runs out
-      time_taken_seconds: timeSpent
-    };
+    // Only save answer if an option was selected
+    if (selectedOption) {
+      const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
+      const answerData: AnswerRequest = {
+        question_id: currentQuestion.id,
+        chosen_option: selectedOption,
+        time_taken_seconds: timeSpent
+      };
 
-    studentApi.answerQuestion(attemptData.attempt_id, answerData).catch(console.error);
-    setAnswers(prev => new Map(prev.set(currentQuestion.id, answerData)));
-    
-    handleNextQuestion();
-  }, [currentQuestion, attemptData]);
+      try {
+        // Submit answer to backend
+        await studentApi.answerQuestion(attemptData.attempt_id, answerData);
+        
+        // Update local state
+        setAnswers(prev => new Map(prev.set(currentQuestion.id, answerData)));
+        
+      } catch (err: any) {
+        console.error('Error submitting answer:', err);
+        setError('Failed to submit answer');
+        return;
+      }
+    }
 
-  const handleNextQuestion = () => {
-    if (!attemptData) return;
-
+    // Move to next question
     if (currentQuestionIndex < attemptData.questions.length - 1) {
-      const nextIndex = currentQuestionIndex + 1;
-      setCurrentQuestionIndex(nextIndex);
-      setTimeLeft(attemptData.questions[nextIndex].per_question_seconds);
-      setQuestionStartTime(Date.now());
-    } else {
-      // All questions answered, submit assignment
-      handleSubmitAssignment();
-    }
-  };
-
-  const handlePreviousQuestion = () => {
-    if (currentQuestionIndex > 0) {
-      const prevIndex = currentQuestionIndex - 1;
-      setCurrentQuestionIndex(prevIndex);
-      setTimeLeft(attemptData!.questions[prevIndex].per_question_seconds);
-      setQuestionStartTime(Date.now());
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setSelectedOption(null);
     }
   };
 
   const handleSubmitAssignment = async () => {
     if (!attemptData) return;
+
+    // Save current question answer if selected
+    if (selectedOption && currentQuestion) {
+      const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
+      const answerData: AnswerRequest = {
+        question_id: currentQuestion.id,
+        chosen_option: selectedOption,
+        time_taken_seconds: timeSpent
+      };
+
+      try {
+        await studentApi.answerQuestion(attemptData.attempt_id, answerData);
+        setAnswers(prev => new Map(prev.set(currentQuestion.id, answerData)));
+      } catch (err: any) {
+        console.error('Error submitting final answer:', err);
+      }
+    }
 
     try {
       setIsSubmitting(true);
@@ -262,8 +257,7 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
             {onCancel && (
               <div className="flex justify-center">
                 <Button onClick={onCancel} size="lg" className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
+                  <ArrowLeft className="h-4 w-4" />
                 </Button>
               </div>
             )}
@@ -374,9 +368,10 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
     );
   }
 
+  const isLastQuestion = currentQuestionIndex === attemptData.questions.length - 1;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4">
-      <div className="max-w-4xl mx-auto space-y-4">
+    <div className="space-y-4">
         {/* Enhanced header with progress and timer */}
         <Card className="bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
           <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
@@ -461,8 +456,7 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
               <h3 className="text-base font-semibold text-gray-900 mb-3">Choose your answer:</h3>
               {['A', 'B', 'C', 'D'].map((option) => {
                 const optionKey = option as 'A' | 'B' | 'C' | 'D';
-                const answer = answers.get(currentQuestion.id);
-                const isSelected = answer?.chosen_option === optionKey;
+                const isSelected = selectedOption === optionKey;
                 
                 return (
                   <div 
@@ -510,16 +504,6 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
         <Card className="bg-white shadow-lg border-0 rounded-2xl">
           <CardContent className="p-4">
             <div className="flex justify-between items-center">
-              <Button
-                variant="outline"
-                onClick={handlePreviousQuestion}
-                disabled={currentQuestionIndex === 0}
-                className="px-5 py-5"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Previous
-              </Button>
-
               <div className="text-center space-y-1">
                 <div className="flex items-center justify-center space-x-2 text-xs text-gray-600">
                   <TrendingUp className="h-4 w-4" />
@@ -531,7 +515,18 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
                 />
               </div>
 
-              {currentQuestionIndex === attemptData.questions.length - 1 ? (
+              <div className="flex space-x-3">
+                {!isLastQuestion && (
+                  <Button
+                    onClick={handleNextQuestion}
+                    disabled={!selectedOption}
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-5"
+                  >
+                    Next Question
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                )}
+                
                 <Button
                   onClick={handleSubmitAssignment}
                   disabled={isSubmitting}
@@ -549,20 +544,10 @@ const StudentAssignmentView = ({ assignmentId, onComplete, onCancel }: StudentAs
                     </>
                   )}
                 </Button>
-              ) : (
-                <Button
-                  onClick={handleNextQuestion}
-                  disabled={!answers.has(currentQuestion.id)}
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-5"
-                >
-                  Next Question
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              )}
+              </div>
             </div>
           </CardContent>
         </Card>
-      </div>
     </div>
   );
 };
