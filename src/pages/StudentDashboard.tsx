@@ -149,7 +149,26 @@ const StudentDashboard = () => {
 
       // Step 4: Get overdue assignments
       const overdueData = await studentApi.getOverdueAssignments(userProfile.id);
-      setOverdueAssignments(overdueData);
+      
+      // Step 5: Combine overdue assignments with submitted assignments that aren't already in overdue
+      const submittedAssignments = activeAssignments.filter(assignment => 
+        assignment.student_status === 'SUBMITTED'
+      );
+      
+      // Step 6: Include assignments that are past their due date, even if not returned by overdue API
+      const currentDate = new Date();
+      const pastDueAssignments = activeAssignments.filter(assignment => 
+        new Date(assignment.due_at) < currentDate && 
+        (assignment.student_status === 'SUBMITTED' || assignment.student_status === 'IN_PROGRESS')
+      );
+      
+      // Combine all assignments for results view (remove duplicates by id)
+      const allResultAssignments = [...overdueData, ...submittedAssignments, ...pastDueAssignments];
+      const uniqueResultAssignments = allResultAssignments.filter((assignment, index, self) => 
+        index === self.findIndex(a => a.id === assignment.id)
+      );
+      
+      setOverdueAssignments(uniqueResultAssignments);
 
       // Calculate stats from the assignments
       const totalAssignments = activeAssignments.length;
@@ -609,11 +628,11 @@ const StudentDashboard = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-blue-100 text-sm font-medium">Completed Assignments</p>
+                        <p className="text-blue-100 text-sm font-medium">Assignment Results</p>
                         <p className="text-3xl font-bold">{filteredOverdueAssignments.length}</p>
                         <div className="flex items-center mt-2">
                           <CheckCircle2 className="h-4 w-4 mr-1" />
-                          <span className="text-sm text-blue-100">Ready for review</span>
+                          <span className="text-sm text-blue-100">Available for review</span>
                         </div>
                       </div>
                       <BarChart3 className="h-12 w-12 text-blue-200" />
@@ -710,12 +729,12 @@ const StudentDashboard = () => {
                     <TrendingUp className="h-10 w-10 text-gray-500" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                    {selectedProgressClassroomId ? 'No Results in This Classroom' : 'No Completed Assignments Yet'}
+                    {selectedProgressClassroomId ? 'No Results in This Classroom' : 'No Assignment Results Yet'}
                   </h3>
                   <p className="text-gray-600 max-w-md mx-auto">
                     {selectedProgressClassroomId 
-                      ? 'This classroom doesn\'t have any completed assignments yet. Try selecting a different classroom or check back later.'
-                      : 'Once you complete assignments that are past their due date, you\'ll be able to view detailed results and analytics here.'
+                      ? 'This classroom doesn\'t have any submitted or overdue assignments yet. Try selecting a different classroom or check back later.'
+                      : 'Once you submit assignments or assignments become overdue, you\'ll be able to view detailed results and analytics here.'
                     }
                   </p>
                 </div>
@@ -734,6 +753,8 @@ const StudentDashboard = () => {
                       const correctAnswers = assignment.questions.filter(q => q.is_correct).length;
                       const totalQuestions = assignment.questions.length;
                       const correctPercentage = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+                      const isOverdue = new Date(assignment.due_at) < new Date();
+                      const isSubmitted = assignment.student_status === 'SUBMITTED';
                       
                       return (
                         <Card key={assignment.id} className="overflow-hidden transition-shadow duration-200 hover:shadow-lg border-l-4 border-blue-500">
@@ -742,7 +763,9 @@ const StudentDashboard = () => {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2">
                                   <h4 className="text-lg font-semibold text-gray-900">{assignment.title}</h4>
-                                  <Badge className="bg-green-100 text-green-700 border-0">Completed</Badge>
+                                  <Badge className={`border-0 ${isSubmitted ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                    {isSubmitted ? 'Submitted' : 'Overdue'}
+                                  </Badge>
                                 </div>
                                 <p className="text-sm text-gray-600 line-clamp-2">{assignment.description}</p>
                                 <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
@@ -751,62 +774,90 @@ const StudentDashboard = () => {
                                 </div>
                               </div>
                               <div className="text-right shrink-0">
-                                <div className="text-2xl font-bold text-gray-900">
-                                  {Math.round(assignment.percentage || 0)}%
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                  {assignment.student_score}/{assignment.max_possible_score} points
-                                </div>
+                                {isSubmitted ? (
+                                  <>
+                                    <div className="text-2xl font-bold text-gray-900">
+                                      {Math.round(assignment.percentage || 0)}%
+                                    </div>
+                                    <div className="text-sm text-gray-600">
+                                      {assignment.student_score}/{assignment.max_possible_score} points
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div className="text-2xl font-bold text-orange-600">
+                                      Overdue
+                                    </div>
+                                    <div className="text-sm text-gray-600">
+                                      Not submitted
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             </div>
 
-                            {/* Performance Breakdown */}
-                            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                                <div>
-                                  <div className="text-lg font-semibold text-green-600">{correctAnswers}</div>
-                                  <div className="text-xs text-gray-600">Correct</div>
-                                </div>
-                                <div>
-                                  <div className="text-lg font-semibold text-red-600">{totalQuestions - correctAnswers}</div>
-                                  <div className="text-xs text-gray-600">Incorrect</div>
-                                </div>
-                                <div>
-                                  <div className="text-lg font-semibold text-blue-600">{totalQuestions}</div>
-                                  <div className="text-xs text-gray-600">Total Questions</div>
-                                </div>
-                                <div>
-                                  <div className="text-lg font-semibold text-purple-600">
-                                    {Math.round((assignment.questions.reduce((total, q) => total + (q.time_taken_seconds || 0), 0)) / 60)}m
+                            {/* Performance Breakdown - Only show for submitted assignments */}
+                            {isSubmitted && (
+                              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                  <div>
+                                    <div className="text-lg font-semibold text-green-600">{correctAnswers}</div>
+                                    <div className="text-xs text-gray-600">Correct</div>
                                   </div>
-                                  <div className="text-xs text-gray-600">Time Taken</div>
+                                  <div>
+                                    <div className="text-lg font-semibold text-red-600">{totalQuestions - correctAnswers}</div>
+                                    <div className="text-xs text-gray-600">Incorrect</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-lg font-semibold text-blue-600">{totalQuestions}</div>
+                                    <div className="text-xs text-gray-600">Total Questions</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-lg font-semibold text-purple-600">
+                                      {Math.round((assignment.questions.reduce((total, q) => total + (q.time_taken_seconds || 0), 0)) / 60)}m
+                                    </div>
+                                    <div className="text-xs text-gray-600">Time Taken</div>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
+                            )}
 
                             {/* Action Buttons */}
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-3 text-xs">
-                                <div className="flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-full">
-                                  <Calendar className="h-3.5 w-3.5 text-gray-600" />
-                                  <span className="text-gray-700">Submitted: {new Date(assignment.submitted_at!).toLocaleDateString()}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 bg-blue-100 px-3 py-1.5 rounded-full">
-                                  <Timer className="h-3.5 w-3.5 text-blue-600" />
-                                  <span className="text-blue-700">
+                                {isSubmitted && assignment.submitted_at && (
+                                  <div className="flex items-center gap-1.5 bg-green-100 px-3 py-1.5 rounded-full">
+                                    <Calendar className="h-3.5 w-3.5 text-green-600" />
+                                    <span className="text-green-700">Submitted: {new Date(assignment.submitted_at).toLocaleDateString()}</span>
+                                  </div>
+                                )}
+                                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${isOverdue ? 'bg-red-100' : 'bg-blue-100'}`}>
+                                  <Timer className={`h-3.5 w-3.5 ${isOverdue ? 'text-red-600' : 'text-blue-600'}`} />
+                                  <span className={`${isOverdue ? 'text-red-700' : 'text-blue-700'}`}>
                                     Due: {new Date(assignment.due_at).toLocaleDateString()}
                                   </span>
                                 </div>
                               </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewResults(assignment.id)}
-                                className="px-4"
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Detailed Results
-                              </Button>
+                              {isSubmitted ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleViewResults(assignment.id)}
+                                  className="px-4"
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View Detailed Results
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleStartAssignment(assignment.id)}
+                                  className="px-4 bg-orange-600 hover:bg-orange-700"
+                                >
+                                  <Play className="h-4 w-4 mr-2" />
+                                  Complete Assignment
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </Card>
