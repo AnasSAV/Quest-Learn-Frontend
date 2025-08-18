@@ -48,8 +48,10 @@ const StudentDashboard = () => {
   const [assignments, setAssignments] = useState<StudentAssignment[]>([]);
   const [filteredAssignments, setFilteredAssignments] = useState<StudentAssignment[]>([]);
   const [overdueAssignments, setOverdueAssignments] = useState<StudentAssignment[]>([]);
+  const [filteredOverdueAssignments, setFilteredOverdueAssignments] = useState<StudentAssignment[]>([]);
   const [studentClassrooms, setStudentClassrooms] = useState<StudentClassroom[]>([]);
   const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
+  const [selectedProgressClassroomId, setSelectedProgressClassroomId] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalAssignments: 0,
     completedAssignments: 0,
@@ -101,6 +103,16 @@ const StudentDashboard = () => {
       setFilteredAssignments(filtered);
     }
   }, [assignments, selectedClassroomId]);
+
+  // Filter overdue assignments when progress classroom selection changes
+  useEffect(() => {
+    if (selectedProgressClassroomId === null) {
+      setFilteredOverdueAssignments(overdueAssignments);
+    } else {
+      const filtered = overdueAssignments.filter(assignment => assignment.classroom_id === selectedProgressClassroomId);
+      setFilteredOverdueAssignments(filtered);
+    }
+  }, [overdueAssignments, selectedProgressClassroomId]);
 
   const fetchStudentData = async () => {
     try {
@@ -206,6 +218,10 @@ const StudentDashboard = () => {
 
   const handleClassroomFilter = (classroomId: string | null) => {
     setSelectedClassroomId(classroomId);
+  };
+
+  const handleProgressClassroomFilter = (classroomId: string | null) => {
+    setSelectedProgressClassroomId(classroomId);
   };
 
   const getStatusColor = (assignment: StudentAssignment) => {
@@ -594,7 +610,7 @@ const StudentDashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-blue-100 text-sm font-medium">Completed Assignments</p>
-                        <p className="text-3xl font-bold">{overdueAssignments.length}</p>
+                        <p className="text-3xl font-bold">{filteredOverdueAssignments.length}</p>
                         <div className="flex items-center mt-2">
                           <CheckCircle2 className="h-4 w-4 mr-1" />
                           <span className="text-sm text-blue-100">Ready for review</span>
@@ -611,7 +627,7 @@ const StudentDashboard = () => {
                       <div>
                         <p className="text-purple-100 text-sm font-medium">Overall Average</p>
                         <p className="text-3xl font-bold">{(() => {
-                          const scoresWithPercentage = overdueAssignments.filter(a => a.percentage !== null);
+                          const scoresWithPercentage = filteredOverdueAssignments.filter(a => a.percentage !== null);
                           const avgScore = scoresWithPercentage.length > 0 
                             ? scoresWithPercentage.reduce((acc, a) => acc + (a.percentage || 0), 0) / scoresWithPercentage.length
                             : 0;
@@ -621,7 +637,7 @@ const StudentDashboard = () => {
                           <Percent className="h-4 w-4 mr-1" />
                           <span className="text-sm text-purple-100">
                             {(() => {
-                              const scoresWithPercentage = overdueAssignments.filter(a => a.percentage !== null);
+                              const scoresWithPercentage = filteredOverdueAssignments.filter(a => a.percentage !== null);
                               const avgScore = scoresWithPercentage.length > 0 
                                 ? scoresWithPercentage.reduce((acc, a) => acc + (a.percentage || 0), 0) / scoresWithPercentage.length
                                 : 0;
@@ -643,7 +659,7 @@ const StudentDashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-green-100 text-sm font-medium">Total Questions</p>
-                        <p className="text-3xl font-bold">{overdueAssignments.reduce((total, assignment) => total + assignment.questions.length, 0)}</p>
+                        <p className="text-3xl font-bold">{filteredOverdueAssignments.reduce((total, assignment) => total + assignment.questions.length, 0)}</p>
                         <div className="flex items-center mt-2">
                           <Target className="h-4 w-4 mr-1" />
                           <span className="text-sm text-green-100">Questions answered</span>
@@ -655,15 +671,52 @@ const StudentDashboard = () => {
                 </Card>
               </div>
 
+              {/* Classroom Filter for Progress */}
+              {studentClassrooms.length > 0 && (
+                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Filter className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <h3 className="font-medium text-gray-900">Filter Results by Classroom</h3>
+                          <p className="text-sm text-gray-600">Show assignment results from a specific classroom</p>
+                        </div>
+                      </div>
+                      <div className="w-64">
+                        <Select value={selectedProgressClassroomId || 'all'} onValueChange={(value) => handleProgressClassroomFilter(value === 'all' ? null : value)}>
+                          <SelectTrigger className="bg-white">
+                            <SelectValue placeholder="All Classrooms" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Classrooms</SelectItem>
+                            {studentClassrooms.map((classroom) => (
+                              <SelectItem key={classroom.id} value={classroom.id}>
+                                {classroom.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Overdue Assignments Results */}
-              {overdueAssignments.length === 0 ? (
+              {filteredOverdueAssignments.length === 0 ? (
                 <div className="text-center py-16">
                   <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                     <TrendingUp className="h-10 w-10 text-gray-500" />
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">No Completed Assignments Yet</h3>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                    {selectedProgressClassroomId ? 'No Results in This Classroom' : 'No Completed Assignments Yet'}
+                  </h3>
                   <p className="text-gray-600 max-w-md mx-auto">
-                    Once you complete assignments that are past their due date, you'll be able to view detailed results and analytics here.
+                    {selectedProgressClassroomId 
+                      ? 'This classroom doesn\'t have any completed assignments yet. Try selecting a different classroom or check back later.'
+                      : 'Once you complete assignments that are past their due date, you\'ll be able to view detailed results and analytics here.'
+                    }
                   </p>
                 </div>
               ) : (
@@ -671,12 +724,13 @@ const StudentDashboard = () => {
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-gray-900">Assignment Results</h3>
                     <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                      {overdueAssignments.length} assignment{overdueAssignments.length !== 1 ? 's' : ''} available
+                      {filteredOverdueAssignments.length} assignment{filteredOverdueAssignments.length !== 1 ? 's' : ''} 
+                      {selectedProgressClassroomId ? ' in this classroom' : ' available'}
                     </Badge>
                   </div>
 
                   <div className="grid gap-6">
-                    {overdueAssignments.map((assignment) => {
+                    {filteredOverdueAssignments.map((assignment) => {
                       const correctAnswers = assignment.questions.filter(q => q.is_correct).length;
                       const totalQuestions = assignment.questions.length;
                       const correctPercentage = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
